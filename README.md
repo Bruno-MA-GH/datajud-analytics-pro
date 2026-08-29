@@ -1,77 +1,73 @@
-# Base44 Project
+# Legal Dashboard — Litigância Aérea (DataJud/CNJ)
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+Dashboard analítico para artigo científico sobre litigância abusiva no setor aéreo.
+Consulta a **API Pública do DataJud (CNJ)** via agregações do Elasticsearch e exibe a
+evolução temporal do volume de ações e do índice de justiça gratuita.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+## Visão geral da arquitetura
 
-## Prerequisites
+```
+Frontend (React + Tailwind + Recharts)
+        │  base44.functions.invoke(...)
+        ▼
+Backend for Frontend (funções Node.js)
+        │  POST https://api-publica.datajud.cnj.br/api/publico/<tribunal>/_search
+        │  Authorization: ApiKey <DATAJUD_API_KEY>
+        ▼
+DataJud / Elasticsearch  (size:0 + date_histogram  →  apenas contagens por mês)
+```
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
+- **BFF**: `base44/functions/fetchAviationVolume` e `base44/functions/fetchJusticeGratuita`.
+  Guardam a API Key, montam a query DSL, disparam os tribunais em paralelo e devolvem
+  séries limpas. Lógica compartilhada em `base44/shared/datajud.ts`.
+- **Frontend**: `src/pages/LegalDashboard.jsx` + componentes em `src/components/dashboard/`.
+- **Visualização**: Recharts (linha/área para volume; barras empilhadas para justiça gratuita).
 
-See the [Base44 CLI docs](https://docs.base44.com/developers/references/cli/get-started/overview) if you want to run Base44 commands directly.
+## Configuração da API Key (`.env`)
 
-## Run Locally
+A chave é obtida gratuitamente em: **https://api-publica.datajud.cnj.br/**
 
-Run the full local development environment from the project root:
+Em um projeto Node convencional, crie um `.env` na raiz:
 
 ```bash
-base44 dev
+DATAJUD_API_KEY=sua_chave_datajud_aqui
 ```
 
-`base44 dev` starts the local Base44 development backend and, when this app is configured for it, also starts the frontend dev server for you. Use the frontend URL printed by the command.
+> Nesta plataforma (Base44), a chave é cadastrada como **secret** em
+> **Dashboard → Settings → Environment Variables** com o nome `DATAJUD_API_KEY`.
+> As funções a leem via `secrets.get("DATAJUD_API_KEY")`. Não há arquivo `.env`
+> versionado — a chave nunca fica no código nem no front.
 
-For example, when the Base44 project config includes a `serveCommand`, `base44 dev` can launch the frontend too:
-
-```json5
-{
-  "site": {
-    "serveCommand": "npm run dev"
-  }
-}
-```
-
-In a Base44 project this lives in `base44/config.jsonc`.
-
-## Run Only The Frontend
-
-If you only want to work on the frontend against the hosted Base44 backend, run:
+## Rodando localmente
 
 ```bash
-npm run dev
+npm install
+npm run dev      # sobe o frontend (Vite)
 ```
 
-Open the local URL printed by Vite.
+As funções de backend são deployadas pela própria plataforma; em ambiente local
+de desenvolvimento do BFF, o mesmo segredo `DATAJUD_API_KEY` deve estar disponível
+no ambiente de execução das funções.
 
-## Use The Hosted Backend
+## Estratégia de extração (notas metodológicas)
 
-For frontend-only development, create or update `.env.local` in the project root:
+Para contornar o **limite de 10k hits** da paginação do DataJud, todas as consultas
+usam `size: 0` com `date_histogram` (agregações) — retornam apenas a contagem de
+processos agrupada por mês, poupando banda e processamento.
 
-```bash
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=https://your-app.base44.app
-```
+- **Volume de ações**: `terms` em `assunto.codigo` (TPUs 11843, 11844, 11845) +
+  `date_histogram` mensal em `dataAjuizamento`.
+- **Justiça gratuita**: mesmo filtro aéreo + `date_histogram` mensal com sub-agregação
+  `filter` (TPU 10685) para obter, por mês, total e com-gratuidade.
 
-`VITE_BASE44_APP_ID` identifies the Base44 app.
+Códigos de TPU usados:
 
-`VITE_BASE44_APP_BASE_URL` tells the Base44 Vite plugin where to send local `/api` requests. Point it at your deployed Base44 app URL when you want the local frontend to use the hosted backend.
+| TPU   | Descrição |
+|-------|-----------|
+| 11843 | Atraso de voo |
+| 11844 | Cancelamento de voo |
+| 11845 | Extravio de bagagem |
+| 10685 | Assistência Judiciária Gratuita |
 
-When you use `base44 dev`, the command injects the local Base44 values for you, so `.env.local` is mainly needed for frontend-only workflows.
-
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
-
-```bash
-base44 dashboard open
-```
-
-## Docs & Support
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Base44 CLI command reference: [https://docs.base44.com/developers/references/cli/commands/introduction](https://docs.base44.com/developers/references/cli/commands/introduction)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+As queries DSL estão comentadas linha a linha nos arquivos das funções
+(`base44/functions/*/entry.ts`) para fins de validação metodológica.
