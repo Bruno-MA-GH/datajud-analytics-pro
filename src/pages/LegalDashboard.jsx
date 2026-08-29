@@ -165,13 +165,14 @@ export default function LegalDashboard() {
             <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
               <p>
                 Fonte: API Pública do DataJud (CNJ). Estratégia de extração: agregações
-                <code className="mx-1 rounded bg-muted px-1 py-0.5">date_histogram</code>
-                sobre <code className="rounded bg-muted px-1 py-0.5">dataAjuizamento</code>,
+                <code className="mx-1 rounded bg-muted px-1 py-0.5">terms</code> com
+                script de normalização sobre <code className="rounded bg-muted px-1 py-0.5">dataAjuizamento</code>,
                 evitando o limite de 10k hits da paginação.
               </p>
               <p>
-                Critério de litigância aérea: assuntos TPU 11843, 11844 e 11845. Justiça
-                gratuita: presença do assunto TPU 10685 (Assistência Judiciária Gratuita).
+                Critério de litigância aérea: assuntos "Atraso de vôo", "Cancelamento de vôo"
+                e "Extravio de bagagem" (filtro por nome, estável nacionalmente). Justiça
+                gratuita: presença do assunto "Assistência Judiciária Gratuita" (TPU 10685).
               </p>
             </footer>
           </>

@@ -19,7 +19,7 @@ export function JusticeGratuitaChart({ data }) {
           Índice de justiça gratuita
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Proporção de processos aeronáuticos com Assistência Judiciária Gratuita (TPU 10685)
+          Proporção com o assunto "Assistência Judiciária Gratuita" (TPU 10685)
         </p>
       </div>
       <div className="h-72 w-full">

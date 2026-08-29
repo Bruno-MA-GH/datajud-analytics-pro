@@ -2,8 +2,10 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   queryDataJudAggregation,
   TRIBUNAIS_DEFAULT,
-  TPU_AEREA,
-  TPU_JUS_GRATUITA,
+  ASSUNTOS_AEREA_NOMES,
+  ASSUNTOS_JUS_GRATUITA_NOMES,
+  SCRIPT_DATA_AJUIZAMENTO_YYYYMM,
+  toYearMonth,
 } from "../../shared/datajud.ts";
 
 // =============================================================================
@@ -14,9 +16,8 @@ import {
 //          "tribunais_ok": [...], "tribunais_falhas": [...] }
 //
 // Metodologia:
-//   Dentro de cada bucket mensal (apenas processos aeronáuticos), conta-se
-//   quantos possuem também o assunto "Assistência Judiciária Gratuita" (TPU 10685).
-//   proporcao = comGratuidade / total * 100.
+//   Em cada mês (apenas processos aeronáuticos), conta-se quantos possuem
+//   também o assunto "Assistência Judiciária Gratuita". proporcao = com/total.
 // =============================================================================
 
 export default async function (req) {
@@ -34,47 +35,32 @@ export default async function (req) {
     // -------------------------------------------------------------------------
     // Query DSL (Elasticsearch) para o DataJud.
     //
-    // - size: 0 -> apenas agregações, sem retorno de documentos.
-    // - query.bool.must.terms sobre assunto.codigo -> filtra processos
-    //   aeronáuticos (TPUs 11843/11844/11845).
+    // - size: 0 -> apenas agregações.
+    // - query.terms sobre "assuntos.nome.keyword": filtra processos aéreos.
     //
-    // - aggs.evolucao_mensal.date_histogram (por mês, em dataAjuizamento):
-    //     Dentro de cada mês, aninhamos uma sub-agregação "com_gratuidade" do
-    //     tipo "filter", que conta os documentos daquele bucket que TAMBÉM
-    //     possuem o assunto 10685 (Assistência Judiciária Gratuita).
-    //     Assim obtemos, por mês: total (doc_count do bucket) e
-    //     comGratuidade (com_gratuidade.doc_count).
+    // - aggs.por_mes.terms com script: bucket por yyyyMM (data normalizada).
+    //   Sub-agregação "com_gratuidade" (filter): dentro de cada mês, conta os
+    //   documentos que TAMBÉM possuem o assunto "Assistência Judiciária
+    //   Gratuita" (ou variante "Justiça Gratuita"). Assim, por mês obtemos:
+    //     total = doc_count do bucket
+    //     comGratuidade = com_gratuidade.doc_count
     //
-    // - min_doc_count: 1 aqui (somente meses com processos) para evitar ruído
-    //   de meses vazios na análise de proporção.
-    //
-    // Nota metodológica alternativa:
-    //   O deferimento da gratuidade também pode ser capturado via MOVIMENTOS
-    //   processuais (ex.: movimento de nome "Concessão de benefício da
-    //   gratuidade judiciária"). O campo "movimentos" é um array de objetos
-    //   e exigiria uma query "nested" (movimentos.nome), que é mais custosa e
-    //   varia entre tribunais. Para garantir cobertura nacional estável no
-    //   DataJud público, optamos pelo critério de assunto (TPU 10685).
+    // Nota metodológica: o deferimento da gratuidade também pode ser capturado
+    // via MOVIMENTOS processuais (ex.: "Concessão de benefício da gratuidade
+    // judiciária"), mas "movimentos" é array aninhado e varia entre tribunais.
+    // Para cobertura nacional estável no DataJud público, usamos o critério de
+    // ASSUNTO (TPU 10685 / nome "Assistência Judiciária Gratuita").
     // -------------------------------------------------------------------------
     const dsl = {
       size: 0,
-      query: {
-        bool: {
-          must: [{ terms: { "assunto.codigo": TPU_AEREA } }],
-        },
-      },
+      query: { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
       aggs: {
-        evolucao_mensal: {
-          date_histogram: {
-            field: "dataAjuizamento",
-            calendar_interval: "month",
-            format: "yyyy-MM",
-            min_doc_count: 1,
-          },
+        por_mes: {
+          terms: { script: { source: SCRIPT_DATA_AJUIZAMENTO_YYYYMM }, size: 400 },
           aggs: {
             com_gratuidade: {
               filter: {
-                terms: { "assunto.codigo": [TPU_JUS_GRATUITA] },
+                terms: { "assuntos.nome.keyword": ASSUNTOS_JUS_GRATUITA_NOMES },
               },
             },
           },
@@ -86,22 +72,20 @@ export default async function (req) {
       tribunals.map((t) => queryDataJudAggregation(t, dsl))
     );
 
-    const merged = new Map(); // month -> { total, comGratuidade }
+    const merged = new Map(); // "yyyy-MM" -> { total, comGratuidade }
     const ok = [];
     const falhas = [];
 
     results.forEach((r, i) => {
       const t = tribunals[i];
       if (r.status === "fulfilled") {
-        const agg = r.value?.aggregations?.evolucao_mensal;
-        if (agg?.buckets) {
-          for (const b of agg.buckets) {
-            const m = b.key_as_string;
-            const cur = merged.get(m) || { total: 0, comGratuidade: 0 };
-            cur.total += b.doc_count || 0;
-            cur.comGratuidade += b.com_gratuidade?.doc_count || 0;
-            merged.set(m, cur);
-          }
+        const buckets = r.value?.aggregations?.por_mes?.buckets || [];
+        for (const b of buckets) {
+          const month = toYearMonth(b.key);
+          const cur = merged.get(month) || { total: 0, comGratuidade: 0 };
+          cur.total += b.doc_count || 0;
+          cur.comGratuidade += b.com_gratuidade?.doc_count || 0;
+          merged.set(month, cur);
         }
         ok.push(t);
       } else {
@@ -109,7 +93,12 @@ export default async function (req) {
       }
     });
 
+    // Janela de estudo: de 2000-01 até o mês corrente (remove artefatos de data
+    // mal-formatada e datas futuras espúrias).
+    const agora = new Date();
+    const corteSup = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
     const serie = [...merged.entries()]
+      .filter(([m]) => m >= "2000-01" && m <= corteSup)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([month, v]) => ({
         month,

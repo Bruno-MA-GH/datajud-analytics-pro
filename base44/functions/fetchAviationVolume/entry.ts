@@ -2,7 +2,9 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   queryDataJudAggregation,
   TRIBUNAIS_DEFAULT,
-  TPU_AEREA,
+  ASSUNTOS_AEREA_NOMES,
+  SCRIPT_DATA_AJUIZAMENTO_YYYYMM,
+  toYearMonth,
 } from "../../shared/datajud.ts";
 
 // =============================================================================
@@ -26,61 +28,50 @@ export default async function (req) {
         : TRIBUNAIS_DEFAULT;
 
     // -------------------------------------------------------------------------
-    // Construção da query DSL (Elasticsearch) enviada ao DataJud.
+    // Query DSL (Elasticsearch) enviada ao DataJud.
     //
-    // - "size": 0  -> não retorna documentos, SOMENTE agregações. Isso evita o
-    //   limite de 10k hits da paginação e reduz drasticamente o payload.
+    // - "size": 0 -> retorna SOMENTE agregações (sem documentos), evitando o
+    //   limite de 10k hits da paginação e reduzindo o payload.
     //
-    // - "query.bool.must.terms" sobre "assunto.codigo": filtra os processos
-    //   cujo assunto (TPU) seja um dos códigos de Direito Aeronáutico. O campo
-    //   "assunto" no DataJud é um array de objetos {codigo, nome}; o subcampo
-    //   "assunto.codigo" é indexado e aceita terms query diretamente.
+    // - "query.terms" sobre "assuntos.nome.keyword": filtra processos cujo
+    //   assunto (TPU/CNJ) seja um dos nomes de Direito Aeronáutico (atraso,
+    //   cancelamento e extravio de bagagem). Filtra por NOME (não por código)
+    //   porque o código estadual varia por tribunal, enquanto o nome é
+    //   padronizado nacionalmente — escolha metodológica para consistência.
     //
-    // - "aggs.evolucao_mensal.date_histogram":
-    //     * field = "dataAjuizamento" (data de ajuizamento do processo)
-    //     * calendar_interval = "month"  -> buckets por mês civil
-    //     * format = "yyyy-MM"            -> chave legível (ex.: "2019-03")
-    //     * min_doc_count = 0             -> inclui meses sem processos,
-    //       garantindo série temporal contínua (essencial para o gráfico).
+    // - "aggs.por_mes.terms" com "script": agrega por mês usando o script
+    //   SCRIPT_DATA_AJUIZAMENTO_YYYYMM, que normaliza o dataAjuizamento
+    //   (formatos mistos ISO/dígitos) em yyyyMM. size: 400 cobre ~33 anos.
+    //   (Usamos terms+script em vez de date_histogram puro porque o
+    //   date_histogram gera anos espúrios 26xx para registros mal-formatados.)
     // -------------------------------------------------------------------------
     const dsl = {
       size: 0,
-      query: {
-        bool: {
-          must: [{ terms: { "assunto.codigo": TPU_AEREA } }],
-        },
-      },
+      query: { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
       aggs: {
-        evolucao_mensal: {
-          date_histogram: {
-            field: "dataAjuizamento",
-            calendar_interval: "month",
-            format: "yyyy-MM",
-            min_doc_count: 0,
-          },
+        por_mes: {
+          terms: { script: { source: SCRIPT_DATA_AJUIZAMENTO_YYYYMM }, size: 400 },
         },
       },
     };
 
     // Dispara todos os tribunais em paralelo; falhas individuais não derrubam
-    // o resultado agregado (importante: alguns índices podem estar offline).
+    // o agregado (alguns índices podem estar indisponíveis).
     const results = await Promise.allSettled(
       tribunals.map((t) => queryDataJudAggregation(t, dsl))
     );
 
-    // Mescla os buckets mensais de cada tribunal somando doc_count por mês.
-    const merged = new Map();
+    const merged = new Map(); // "yyyy-MM" -> count
     const ok = [];
     const falhas = [];
 
     results.forEach((r, i) => {
       const t = tribunals[i];
       if (r.status === "fulfilled") {
-        const agg = r.value?.aggregations?.evolucao_mensal;
-        if (agg?.buckets) {
-          for (const b of agg.buckets) {
-            merged.set(b.key_as_string, (merged.get(b.key_as_string) || 0) + b.doc_count);
-          }
+        const buckets = r.value?.aggregations?.por_mes?.buckets || [];
+        for (const b of buckets) {
+          const month = toYearMonth(b.key);
+          merged.set(month, (merged.get(month) || 0) + (b.doc_count || 0));
         }
         ok.push(t);
       } else {
@@ -88,7 +79,13 @@ export default async function (req) {
       }
     });
 
+    // Janela de estudo: de 2000-01 (início do histórico útil no DataJud para
+    // esses assuntos) até o mês corrente. Remove artefatos de data
+    // mal-formatada (ex.: "1900-01") e datas futuras espúrias.
+    const agora = new Date();
+    const corteSup = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
     const serie = [...merged.entries()]
+      .filter(([m]) => m >= "2000-01" && m <= corteSup)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([month, count]) => ({ month, count }));
 

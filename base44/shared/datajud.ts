@@ -1,60 +1,95 @@
 // =============================================================================
 // Módulo compartilhado: integração com a API Pública do DataJud (CNJ)
 // -----------------------------------------------------------------------------
-// O DataJud expõe um endpoint Elasticsearch por tribunal. A consulta é feita
-// via POST <base>/<tribunal>/_search com um payload DSL (Query JSON) e
-// autenticação por API Key no header "Authorization: ApiKey <chave>".
+// Endpoint por tribunal:
+//   POST https://api-publica.datajud.cnj.jus.br/api_publica_<tribunal>/_search
+// Autenticação (header): "Authorization: APIKey <chave>"  (chave PÚBLICA do CNJ)
 //
-// Para evitar o limite de 10k hits da paginação do DataJud, TODAS as consultas
-// usam agregações (size: 0 + date_histogram), retornando apenas contagens
-// agrupadas por mês — poupando banda e processamento.
+// Para evitar o limite de 10k hits da paginação, TODAS as consultas usam
+// agregações (size: 0), retornando apenas contagens agrupadas por mês.
 // =============================================================================
 
 import { secrets } from "base44:runtime";
 
-// URL base da API Pública do DataJud (CNJ).
-export const DATAJUD_BASE_URL = "https://api-publica.datajud.cnj.br/api/publico";
+// URL base da API Pública do DataJud (CNJ). Índices por tribunal:
+//   /api_publica_<tribunal>/_search   (host ".jus.br")
+export const DATAJUD_BASE_URL = "https://api-publica.datajud.cnj.jus.br";
+
+// Chave pública vigente divulgada na Wiki do CNJ
+// (https://datajud-wiki.cnj.jus.br/api-publica/acesso/). É PÚBLICA e pode ser
+// alterada pelo CNJ a qualquer momento — usada como fallback caso o secret
+// DATAJUD_API_KEY não esteja configurado (ou esteja desatualizado).
+export const DATAJUD_API_KEY_PUBLICA =
+  "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
 
 // ---------------------------------------------------------------------------
-// Códigos de TPU (Tabela Processual Unificada) relevantes para o estudo.
+// Filtro por NOME do assunto (TPU/CNJ).
+// O DataJud indexa assuntos em dois sistemas de código que variam por
+// tribunal (assuntos.codigo estadual e assuntos.codigoNacional/TPU). Para uma
+// extração nacional consistente e metodologicamente defensável, filtramos pelo
+// NOME padronizado do assunto, que é o mesmo em todo o Judiciário.
+//   Ex.: TJSP -> Atraso=4829, Cancelamento=4830, Extravio=4832 (assuntos.codigo)
+// Incluímos variantes com/sem acento ("vôo"/"voo") para maximizar a cobertura.
 // ---------------------------------------------------------------------------
-// Litigância consumer contra companhias aéreas (Direito Aeronáutico):
-//   11843 - Atraso de voo
-//   11844 - Cancelamento de voo
-//   11845 - Extravio de bagagem
-export const TPU_AEREA = ["11843", "11844", "11845"];
+export const ASSUNTOS_AEREA_NOMES = [
+  "Atraso de vôo",
+  "Atraso de voo",
+  "Cancelamento de vôo",
+  "Cancelamento de voo",
+  "Extravio de bagagem",
+];
 
-// Assistência Judiciária Gratuita (indicador de gratuidade da justiça).
-export const TPU_JUS_GRATUITA = "10685";
+export const ASSUNTOS_JUS_GRATUITA_NOMES = [
+  "Assistência Judiciária Gratuita",
+  "Justiça Gratuita",
+];
 
-// ---------------------------------------------------------------------------
-// Tribunais consultados por padrão.
-// Índices do DataJud público são por tribunal; para uma visão nacional faz-se
-// um agregado disparando requisições em paralelo para cada índice.
-// Incluímos os principais Tribunais de Justiça estaduais (TJ) e Regionais
-// Federais (TRF), pois ações aeronáuticas podem correr em ambas as jurisdições.
-// ---------------------------------------------------------------------------
+// Tribunais consultados por padrão (principais TJ estaduais + TRF).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",
   "tjsc", "tjgo", "tjdf", "tjes", "tjmt", "tjms", "tjpa", "tjam",
-  "trf1", "trf2", "trf3", "trf4", "trf5", "trf6"
+  "trf1", "trf2", "trf3", "trf4", "trf5", "trf6",
 ];
 
 // ---------------------------------------------------------------------------
-// Executa uma query DSL contra o índice de um tribunal do DataJud.
-// Retorna o JSON completo da resposta Elasticsearch (aggregations incluídas).
+// Script Painless que normaliza "dataAjuizamento" em yyyyMM (long).
+// -----------------------------------------------------------------------------
+// O campo dataAjuizamento do DataJud público tem FORMATOS MISTOS:
+//   - Parte dos registros vem como data ISO -> anos reais (2001-2025).
+//   - Parte vem como string de dígitos "yyyyMMddHHmmss" (ex.: "20260630103144"),
+//     que o Elasticsearch interpreta como epoch_millis, gerando anos espúrios
+//     no século 26 (2606-2612). Um date_histogram puro, portanto, produz
+//     buckets inválidos para esses registros.
+//
+// O script detecta ano > 2100 (mal-parseado) e RECONSTRÓI o yyyyMM a partir do
+// valor original: quando o ES faz o fallback para epoch_millis, o valor
+// armazenado É o número original (ex.: 20260630103144). Dividindo por 1e8
+// obtemos os 6 primeiros dígitos = yyyyMM (ex.: 202606). Para registros com
+// data ISO, usa o ano/mês diretamente. Ambas as populações resultam no mesmo
+// formato yyyyMM, viabilizando a série histórica correta.
+// ---------------------------------------------------------------------------
+export const SCRIPT_DATA_AJUIZAMENTO_YYYYMM =
+  "def z=doc['dataAjuizamento'].value; if(z.getYear()>2100){return (long)(z.toInstant().toEpochMilli()/100000000L);} else {return z.getYear()*100+z.getMonthValue();}";
+
+// Converte chave yyyyMM (long, ex.: 202603) em "yyyy-MM" (ex.: "2026-03").
+export function toYearMonth(k) {
+  const y = Math.floor(k / 100);
+  const m = k % 100;
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
+
+// ---------------------------------------------------------------------------
+// Executa uma query DSL contra o índice de um tribunal.
 // ---------------------------------------------------------------------------
 export async function queryDataJudAggregation(tribunal, dsl) {
-  const url = `${DATAJUD_BASE_URL}/${tribunal}/_search`;
-  const apiKey = secrets.get("DATAJUD_API_KEY");
-  if (!apiKey) {
-    throw new Error("DATAJUD_API_KEY não configurada.");
-  }
+  const url = `${DATAJUD_BASE_URL}/api_publica_${tribunal}/_search`;
+  const apiKey = secrets.get("DATAJUD_API_KEY") || DATAJUD_API_KEY_PUBLICA;
 
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `ApiKey ${apiKey}`,
+      // Formato exigido pela Wiki do CNJ: "Authorization: APIKey <chave>"
+      Authorization: `APIKey ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(dsl),

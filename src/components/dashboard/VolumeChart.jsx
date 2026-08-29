@@ -21,7 +21,7 @@ export function VolumeChart({ data }) {
           Evolução do volume de ações aeronáuticas
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Novos processos por mês · TPUs 11843 (atraso), 11844 (cancelamento), 11845 (extravio)
+          Novos processos por mês · assuntos: Atraso de vôo, Cancelamento de vôo, Extravio de bagagem
         </p>
       </div>
       <div className="h-72 w-full">
