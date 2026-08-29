@@ -1,46 +1,64 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from "recharts";
 
-// Índice de Justiça Gratuita: compara dois critérios ao longo do tempo.
-//  - proporcaoMovimento: concessão efetiva via movimento "Gratuidade da Justiça"
-//  - proporcaoAssunto:   matéria "Assistência Judiciária Gratuita" (TPU 10685)
+// Quantidade de processos com deferimento de justiça gratuita ao longo do
+// tempo. Critério: presença do movimento "Gratuidade da Justiça" (concessão
+// efetiva). Eixo X = anos; eixo Y = processos. Os dados mensais do BFF são
+// agregados por ano para uma leitura mais limpa da série histórica.
 export function JusticeGratuitaChart({ data }) {
+  const yearly = useMemo(() => {
+    const byYear = new Map();
+    for (const d of data) {
+      const y = (d.month || "").slice(0, 4);
+      if (!y) continue;
+      byYear.set(y, (byYear.get(y) || 0) + (d.comGratuidadeMovimento || 0));
+    }
+    return [...byYear.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([year, count]) => ({ year, count }));
+  }, [data]);
+
   return (
     <div className="rounded-xl border border-border/70 bg-card p-5">
       <div className="mb-4">
         <h3 className="font-heading text-base font-semibold">
-          Índice de justiça gratuita
+          Processos com deferimento de justiça gratuita
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Dois critérios comparados: concessão por movimento vs. assunto (TPU 10685)
+          Quantidade por ano · critério: movimento "Gratuidade da Justiça" (concessão efetiva)
         </p>
       </div>
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <AreaChart data={yearly} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="gradJG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#c98a2a" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#c98a2a" stopOpacity={0} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="year"
               tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
               tickLine={false}
               axisLine={false}
-              minTickGap={24}
+              minTickGap={20}
             />
             <YAxis
               tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
               tickLine={false}
               axisLine={false}
-              width={44}
-              tickFormatter={(v) => `${v}%`}
+              width={56}
+              tickFormatter={(v) => v.toLocaleString("pt-BR")}
             />
             <Tooltip
               contentStyle={{
@@ -50,40 +68,19 @@ export function JusticeGratuitaChart({ data }) {
                 fontSize: 12,
               }}
               labelStyle={{ fontWeight: 600 }}
-              formatter={(value, name) => {
-                const label =
-                  name === "proporcaoMovimento"
-                    ? "Por movimento (concessão)"
-                    : "Por assunto (TPU 10685)";
-                return [`${value}%`, label];
-              }}
+              labelFormatter={(y) => `${y}`}
+              formatter={(v) => [`${Number(v).toLocaleString("pt-BR")} processos`, "Deferimentos"]}
             />
-            <Legend
-              wrapperStyle={{ fontSize: 12 }}
-              formatter={(value) =>
-                value === "proporcaoMovimento"
-                  ? "Por movimento (concessão)"
-                  : "Por assunto (TPU 10685)"
-              }
-            />
-            <Line
+            <Area
               type="monotone"
-              dataKey="proporcaoMovimento"
+              dataKey="count"
               stroke="#c98a2a"
               strokeWidth={2}
+              fill="url(#gradJG)"
               dot={false}
-              name="proporcaoMovimento"
+              activeDot={{ r: 4, strokeWidth: 0 }}
             />
-            <Line
-              type="monotone"
-              dataKey="proporcaoAssunto"
-              stroke="#5b7a99"
-              strokeWidth={2}
-              strokeDasharray="4 2"
-              dot={false}
-              name="proporcaoAssunto"
-            />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
