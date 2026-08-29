@@ -5,6 +5,7 @@ import {
   ASSUNTOS_AEREA_NOMES,
   ASSUNTOS_JUS_GRATUITA_NOMES,
   MOVIMENTOS_JUS_GRATUITA_NOMES,
+  MOVIMENTOS_INDEFERIMENTO_NOMES,
   SCRIPT_DATA_AJUIZAMENTO_YYYYMM,
   toYearMonth,
 } from "../../shared/datajud.ts";
@@ -74,6 +75,11 @@ export default async function (req) {
                 terms: { "movimentos.nome.keyword": MOVIMENTOS_JUS_GRATUITA_NOMES },
               },
             },
+            indeferimento_movimento: {
+              filter: {
+                terms: { "movimentos.nome.keyword": MOVIMENTOS_INDEFERIMENTO_NOMES },
+              },
+            },
           },
         },
       },
@@ -93,10 +99,11 @@ export default async function (req) {
         const buckets = r.value?.aggregations?.por_mes?.buckets || [];
         for (const b of buckets) {
           const month = toYearMonth(b.key);
-          const cur = merged.get(month) || { total: 0, comGratuidadeAssunto: 0, comGratuidadeMovimento: 0 };
+          const cur = merged.get(month) || { total: 0, comGratuidadeAssunto: 0, comGratuidadeMovimento: 0, indeferimentoMovimento: 0 };
           cur.total += b.doc_count || 0;
           cur.comGratuidadeAssunto += b.com_gratuidade_assunto?.doc_count || 0;
           cur.comGratuidadeMovimento += b.com_gratuidade_movimento?.doc_count || 0;
+          cur.indeferimentoMovimento += b.indeferimento_movimento?.doc_count || 0;
           merged.set(month, cur);
         }
         ok.push(t);
@@ -117,6 +124,7 @@ export default async function (req) {
         total: v.total,
         comGratuidadeAssunto: v.comGratuidadeAssunto,
         comGratuidadeMovimento: v.comGratuidadeMovimento,
+        indeferimentoMovimento: v.indeferimentoMovimento,
         proporcaoAssunto: v.total ? Number(((v.comGratuidadeAssunto / v.total) * 100).toFixed(2)) : 0,
         proporcaoMovimento: v.total ? Number(((v.comGratuidadeMovimento / v.total) * 100).toFixed(2)) : 0,
       }));

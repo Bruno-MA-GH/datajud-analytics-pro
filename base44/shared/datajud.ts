@@ -54,6 +54,12 @@ export const MOVIMENTOS_JUS_GRATUITA_NOMES = [
   "Assistência Judiciária Gratuita",
 ];
 
+// Movimento de INDEFERIMENTO. O DataJud não publica um movimento específico de
+// "indeferimento da gratuidade" — a negativa é registrada pelo movimento
+// genérico "Indeferimento" (o objeto indeferido consta apenas nos complementos,
+// não expostos na API). Usado como proxy do indeferimento do benefício.
+export const MOVIMENTOS_INDEFERIMENTO_NOMES = ["Indeferimento"];
+
 // Tribunais consultados por padrão (principais TJ estaduais + TRF).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",

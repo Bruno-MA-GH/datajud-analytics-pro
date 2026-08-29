@@ -19,11 +19,14 @@ export function JusticeGratuitaChart({ data }) {
     for (const d of data) {
       const y = (d.month || "").slice(0, 4);
       if (!y) continue;
-      byYear.set(y, (byYear.get(y) || 0) + (d.comGratuidadeMovimento || 0));
+      const cur = byYear.get(y) || { deferidos: 0, indeferidos: 0 };
+      cur.deferidos += d.comGratuidadeMovimento || 0;
+      cur.indeferidos += d.indeferimentoMovimento || 0;
+      byYear.set(y, cur);
     }
     return [...byYear.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([year, count]) => ({ year, count }));
+      .map(([year, v]) => ({ year, count: v.deferidos, indeferidos: v.indeferidos }));
   }, [data]);
 
   return (
@@ -33,7 +36,8 @@ export function JusticeGratuitaChart({ data }) {
           Processos com deferimento de justiça gratuita
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Quantidade por ano · critério: movimento "Gratuidade da Justiça" (concessão efetiva)
+          Quantidade por ano · deferimento (movimento "Gratuidade da Justiça") e
+          indeferimento (movimento "Indeferimento", em cinza)
         </p>
       </div>
       <div className="h-72 w-full">
@@ -69,7 +73,10 @@ export function JusticeGratuitaChart({ data }) {
               }}
               labelStyle={{ fontWeight: 600 }}
               labelFormatter={(y) => `${y}`}
-              formatter={(v) => [`${Number(v).toLocaleString("pt-BR")} processos`, "Deferimentos"]}
+              formatter={(v, name) => [
+                `${Number(v).toLocaleString("pt-BR")} processos`,
+                name === "indeferidos" ? "Indeferimentos" : "Deferimentos",
+              ]}
             />
             <Area
               type="monotone"
@@ -77,6 +84,15 @@ export function JusticeGratuitaChart({ data }) {
               stroke="#c98a2a"
               strokeWidth={2}
               fill="url(#gradJG)"
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="indeferidos"
+              stroke="#94a3b8"
+              strokeWidth={2}
+              fill="none"
               dot={false}
               activeDot={{ r: 4, strokeWidth: 0 }}
             />
