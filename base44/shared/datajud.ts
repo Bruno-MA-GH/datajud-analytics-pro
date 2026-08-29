@@ -44,6 +44,16 @@ export const ASSUNTOS_JUS_GRATUITA_NOMES = [
   "Justiça Gratuita",
 ];
 
+// Movimentos processuais que indicam a CONCESSÃO/DEFERIMENTO efetivo da
+// justiça gratuita (campo "movimentos[].nome.keyword"). Descobertos
+// empiricamente no DataJud: "Gratuidade da Justiça" é o movimento-padrão
+// nacional de concessão. Mais fidedigno que o critério por assunto, pois
+// registra o ato de deferimento (não apenas a matéria).
+export const MOVIMENTOS_JUS_GRATUITA_NOMES = [
+  "Gratuidade da Justiça",
+  "Assistência Judiciária Gratuita",
+];
+
 // Tribunais consultados por padrão (principais TJ estaduais + TRF).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",

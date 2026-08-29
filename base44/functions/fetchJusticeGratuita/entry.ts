@@ -4,6 +4,7 @@ import {
   TRIBUNAIS_DEFAULT,
   ASSUNTOS_AEREA_NOMES,
   ASSUNTOS_JUS_GRATUITA_NOMES,
+  MOVIMENTOS_JUS_GRATUITA_NOMES,
   SCRIPT_DATA_AJUIZAMENTO_YYYYMM,
   toYearMonth,
 } from "../../shared/datajud.ts";
@@ -39,17 +40,22 @@ export default async function (req) {
     // - query.terms sobre "assuntos.nome.keyword": filtra processos aéreos.
     //
     // - aggs.por_mes.terms com script: bucket por yyyyMM (data normalizada).
-    //   Sub-agregação "com_gratuidade" (filter): dentro de cada mês, conta os
-    //   documentos que TAMBÉM possuem o assunto "Assistência Judiciária
-    //   Gratuita" (ou variante "Justiça Gratuita"). Assim, por mês obtemos:
-    //     total = doc_count do bucket
-    //     comGratuidade = com_gratuidade.doc_count
+    //   Duas sub-agregações "filter" por mês, contrastando dois critérios de
+    //   justiça gratuita:
+    //     com_gratuidade_assunto    -> doc também possui o ASSUNTO
+    //                                  "Assistência Judiciária Gratuita".
+    //     com_gratuidade_movimento  -> doc possui o MOVIMENTO de concessão
+    //                                  "Gratuidade da Justiça" (ato de
+    //                                  deferimento efetivo). Campo:
+    //                                  movimentos[].nome.keyword.
+    //   Por mês:
+    //     total = doc_count
+    //     comGratuidadeAssunto   = com_gratuidade_assunto.doc_count
+    //     comGratuidadeMovimento = com_gratuidade_movimento.doc_count
     //
-    // Nota metodológica: o deferimento da gratuidade também pode ser capturado
-    // via MOVIMENTOS processuais (ex.: "Concessão de benefício da gratuidade
-    // judiciária"), mas "movimentos" é array aninhado e varia entre tribunais.
-    // Para cobertura nacional estável no DataJud público, usamos o critério de
-    // ASSUNTO (TPU 10685 / nome "Assistência Judiciária Gratuita").
+    // Nota metodológica: o critério por MOVIMENTO é mais fidedigno da concessão
+    // efetiva (registro do deferimento), enquanto o critério por ASSUNTO
+    // apenas sinaliza a matéria. Comparamos ambos para evidenciar a divergência.
     // -------------------------------------------------------------------------
     const dsl = {
       size: 0,
@@ -58,9 +64,14 @@ export default async function (req) {
         por_mes: {
           terms: { script: { source: SCRIPT_DATA_AJUIZAMENTO_YYYYMM }, size: 400 },
           aggs: {
-            com_gratuidade: {
+            com_gratuidade_assunto: {
               filter: {
                 terms: { "assuntos.nome.keyword": ASSUNTOS_JUS_GRATUITA_NOMES },
+              },
+            },
+            com_gratuidade_movimento: {
+              filter: {
+                terms: { "movimentos.nome.keyword": MOVIMENTOS_JUS_GRATUITA_NOMES },
               },
             },
           },
@@ -82,9 +93,10 @@ export default async function (req) {
         const buckets = r.value?.aggregations?.por_mes?.buckets || [];
         for (const b of buckets) {
           const month = toYearMonth(b.key);
-          const cur = merged.get(month) || { total: 0, comGratuidade: 0 };
+          const cur = merged.get(month) || { total: 0, comGratuidadeAssunto: 0, comGratuidadeMovimento: 0 };
           cur.total += b.doc_count || 0;
-          cur.comGratuidade += b.com_gratuidade?.doc_count || 0;
+          cur.comGratuidadeAssunto += b.com_gratuidade_assunto?.doc_count || 0;
+          cur.comGratuidadeMovimento += b.com_gratuidade_movimento?.doc_count || 0;
           merged.set(month, cur);
         }
         ok.push(t);
@@ -103,9 +115,10 @@ export default async function (req) {
       .map(([month, v]) => ({
         month,
         total: v.total,
-        comGratuidade: v.comGratuidade,
-        semGratuidade: v.total - v.comGratuidade,
-        proporcao: v.total ? Number(((v.comGratuidade / v.total) * 100).toFixed(2)) : 0,
+        comGratuidadeAssunto: v.comGratuidadeAssunto,
+        comGratuidadeMovimento: v.comGratuidadeMovimento,
+        proporcaoAssunto: v.total ? Number(((v.comGratuidadeAssunto / v.total) * 100).toFixed(2)) : 0,
+        proporcaoMovimento: v.total ? Number(((v.comGratuidadeMovimento / v.total) * 100).toFixed(2)) : 0,
       }));
 
     return Response.json({ serie, tribunais_ok: ok, tribunais_falhas: falhas });

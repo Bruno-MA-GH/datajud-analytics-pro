@@ -57,9 +57,11 @@ export default function LegalDashboard() {
       { month: "—", count: 0 }
     );
     const totalJG = jusG.reduce((s, d) => s + (d.total || 0), 0);
-    const totalCom = jusG.reduce((s, d) => s + (d.comGratuidade || 0), 0);
-    const propMedia = totalJG ? ((totalCom / totalJG) * 100).toFixed(1) : "0.0";
-    return { totalVolume, firstMonth, lastMonth, peak, propMedia };
+    const totalMov = jusG.reduce((s, d) => s + (d.comGratuidadeMovimento || 0), 0);
+    const totalAssunto = jusG.reduce((s, d) => s + (d.comGratuidadeAssunto || 0), 0);
+    const propMediaMov = totalJG ? ((totalMov / totalJG) * 100).toFixed(1) : "0.0";
+    const propMediaAssunto = totalJG ? ((totalAssunto / totalJG) * 100).toFixed(1) : "0.0";
+    return { totalVolume, firstMonth, lastMonth, peak, propMediaMov, propMediaAssunto };
   }, [volume, jusG]);
 
   return (
@@ -143,8 +145,8 @@ export default function LegalDashboard() {
               <MetricCard
                 icon={Scale}
                 label="% justiça gratuita (média)"
-                value={`${kpis.propMedia}%`}
-                hint="Proporção ponderada no período"
+                value={`${kpis.propMediaMov}%`}
+                hint={`Por movimento (concessão) · assunto ${kpis.propMediaAssunto}%`}
                 accent="text-amber-600"
               />
               <MetricCard
@@ -171,8 +173,13 @@ export default function LegalDashboard() {
               </p>
               <p>
                 Critério de litigância aérea: assuntos "Atraso de vôo", "Cancelamento de vôo"
-                e "Extravio de bagagem" (filtro por nome, estável nacionalmente). Justiça
-                gratuita: presença do assunto "Assistência Judiciária Gratuita" (TPU 10685).
+                e "Extravio de bagagem" (filtro por nome, estável nacionalmente).
+              </p>
+              <p>
+                Justiça gratuita — dois critérios: (1) por assunto "Assistência Judiciária
+                Gratuita" (TPU 10685); (2) por movimento de concessão "Gratuidade da Justiça"
+                (mais fidedigno do deferimento efetivo). A divergência entre ambos evidencia
+                o sub-registro da matéria como assunto.
               </p>
             </footer>
           </>

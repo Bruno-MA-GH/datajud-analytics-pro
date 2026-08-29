@@ -1,8 +1,8 @@
 import React from "react";
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -10,7 +10,9 @@ import {
   Legend,
 } from "recharts";
 
-// Índice de Justiça Gratuita: barras empilhadas (com x sem gratuidade) por mês.
+// Índice de Justiça Gratuita: compara dois critérios ao longo do tempo.
+//  - proporcaoMovimento: concessão efetiva via movimento "Gratuidade da Justiça"
+//  - proporcaoAssunto:   matéria "Assistência Judiciária Gratuita" (TPU 10685)
 export function JusticeGratuitaChart({ data }) {
   return (
     <div className="rounded-xl border border-border/70 bg-card p-5">
@@ -19,12 +21,12 @@ export function JusticeGratuitaChart({ data }) {
           Índice de justiça gratuita
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Proporção com o assunto "Assistência Judiciária Gratuita" (TPU 10685)
+          Dois critérios comparados: concessão por movimento vs. assunto (TPU 10685)
         </p>
       </div>
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis
               dataKey="month"
@@ -37,7 +39,8 @@ export function JusticeGratuitaChart({ data }) {
               tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
               tickLine={false}
               axisLine={false}
-              width={48}
+              width={44}
+              tickFormatter={(v) => `${v}%`}
             />
             <Tooltip
               contentStyle={{
@@ -48,19 +51,39 @@ export function JusticeGratuitaChart({ data }) {
               }}
               labelStyle={{ fontWeight: 600 }}
               formatter={(value, name) => {
-                if (name === "proporcao") return [`${value}%`, "Com gratuidade"];
-                return [value, name === "comGratuidade" ? "Com gratuidade" : "Sem gratuidade"];
+                const label =
+                  name === "proporcaoMovimento"
+                    ? "Por movimento (concessão)"
+                    : "Por assunto (TPU 10685)";
+                return [`${value}%`, label];
               }}
             />
             <Legend
               wrapperStyle={{ fontSize: 12 }}
               formatter={(value) =>
-                value === "comGratuidade" ? "Com gratuidade" : "Sem gratuidade"
+                value === "proporcaoMovimento"
+                  ? "Por movimento (concessão)"
+                  : "Por assunto (TPU 10685)"
               }
             />
-            <Bar dataKey="semGratuidade" stackId="a" fill="#cfd8e3" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="comGratuidade" stackId="a" fill="#c98a2a" radius={[2, 2, 0, 0]} />
-          </BarChart>
+            <Line
+              type="monotone"
+              dataKey="proporcaoMovimento"
+              stroke="#c98a2a"
+              strokeWidth={2}
+              dot={false}
+              name="proporcaoMovimento"
+            />
+            <Line
+              type="monotone"
+              dataKey="proporcaoAssunto"
+              stroke="#5b7a99"
+              strokeWidth={2}
+              strokeDasharray="4 2"
+              dot={false}
+              name="proporcaoAssunto"
+            />
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
