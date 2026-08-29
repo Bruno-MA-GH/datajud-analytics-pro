@@ -60,6 +60,42 @@ export const MOVIMENTOS_JUS_GRATUITA_NOMES = [
 // não expostos na API). Usado como proxy do indeferimento do benefício.
 export const MOVIMENTOS_INDEFERIMENTO_NOMES = ["Indeferimento"];
 
+// ---------------------------------------------------------------------------
+// Movimentos do TPU de Magistratura que registram o RESULTADO do julgamento.
+// Filtramos por NOME (movimentos.nome.keyword) pela mesma razão dos assuntos:
+// o nome é padronizado nacionalmente, enquanto os códigos variam por tribunal.
+//   Procedência (TPU 219) · Improcedência (220) · Procedência em Parte (221)
+//   Extinção sem resolução do mérito (471/196) · Transação/Acordo (466/208)
+// ---------------------------------------------------------------------------
+export const MOVIMENTOS_PROCEDENCIA_NOMES = ["Procedência"];
+export const MOVIMENTOS_IMPROCEDENCIA_NOMES = ["Improcedência"];
+export const MOVIMENTOS_PARCIAL_NOMES = [
+  "Procedência em Parte",
+  "Procedência Parcial",
+];
+export const MOVIMENTOS_SEM_MERITO_NOMES = [
+  "Extinção sem Resolução do Mérito",
+  "Extinção do processo sem resolução do mérito",
+  "Extinção do Processo Sem Resolução do Mérito",
+  "Sem Resolução do Mérito",
+  "Sem Resolução de Mérito",
+  "Desistência",
+];
+export const MOVIMENTOS_ACORDO_NOMES = [
+  "Homologação de Transação",
+  "Transação",
+  "Homologação de Acordo",
+];
+
+// ---------------------------------------------------------------------------
+// Script Painless: duração da tramitação, em DIAS.
+// Último movimento processual (max movimentos.dataHora) menos dataAjuizamento.
+// Pressupõe query com range em dataAjuizamento (descarta datas mal-formatadas).
+// Sem movimentos ou data inconsistente -> 0.
+// ---------------------------------------------------------------------------
+export const SCRIPT_DURACAO_DIAS =
+  "if(doc['dataAjuizamento'].size()==0) return 0; long a=doc['dataAjuizamento'].value.toInstant().toEpochMilli(); long mx=0; for(d in doc['movimentos.dataHora']){long v=d.toInstant().toEpochMilli(); if(v>mx){mx=v;}} if(mx<=a) return 0; return (mx-a)/86400000L;";
+
 // Tribunais consultados por padrão (principais TJ estaduais + TRF).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",

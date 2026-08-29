@@ -6,12 +6,16 @@ import { MetricCard } from "@/components/dashboard/MetricCard";
 import { VolumeChart } from "@/components/dashboard/VolumeChart";
 import { JusticeGratuitaChart } from "@/components/dashboard/JusticeGratuitaChart";
 import { TribunalFilter } from "@/components/dashboard/TribunalFilter";
+import { TramitacaoCard } from "@/components/dashboard/TramitacaoCard";
+import { ResultadoCard } from "@/components/dashboard/ResultadoCard";
 import { DEFAULT_TRIBUNALS } from "@/lib/tribunals";
 
 export default function LegalDashboard() {
   const [tribunals, setTribunals] = useState(DEFAULT_TRIBUNALS);
   const [volume, setVolume] = useState([]);
   const [jusG, setJusG] = useState([]);
+  const [tramitacao, setTramitacao] = useState(null);
+  const [resultado, setResultado] = useState(null);
   const [meta, setMeta] = useState({ ok: [], falhas: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,12 +24,15 @@ export default function LegalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [volRes, jgRes] = await Promise.all([
+      const [volRes, jgRes, trRes] = await Promise.all([
         base44.functions.invoke("fetchAviationVolume", { tribunals: ts }),
         base44.functions.invoke("fetchJusticeGratuita", { tribunals: ts }),
+        base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts }),
       ]);
       setVolume(volRes.data?.serie || []);
       setJusG(jgRes.data?.serie || []);
+      setTramitacao(trRes.data?.tramitacao || null);
+      setResultado(trRes.data?.resultado || null);
       setMeta({
         ok: volRes.data?.tribunais_ok || [],
         falhas: [...(volRes.data?.tribunais_falhas || [])],
@@ -163,6 +170,12 @@ export default function LegalDashboard() {
               <JusticeGratuitaChart data={jusG} />
             </section>
 
+            {/* Eficiência processual e desfecho do julgamento */}
+            <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <TramitacaoCard tramitacao={tramitacao} />
+              <ResultadoCard resultado={resultado} />
+            </section>
+
             {/* Rodapé metodológico */}
             <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
               <p>
@@ -180,6 +193,13 @@ export default function LegalDashboard() {
                 Gratuita" (TPU 10685); (2) por movimento de concessão "Gratuidade da Justiça"
                 (mais fidedigno do deferimento efetivo). A divergência entre ambos evidencia
                 o sub-registro da matéria como assunto.
+              </p>
+              <p>
+                Tempo de tramitação: diferença em dias entre o último movimento
+                processual e a <code className="rounded bg-muted px-1 py-0.5">dataAjuizamento</code>,
+                restrita a registros com data válida. Resultado do julgamento: varredura
+                dos movimentos do TPU de Magistratura (procedência, improcedência,
+                procedência em parte, extinção sem resolução do mérito e transação).
               </p>
             </footer>
           </>
