@@ -212,15 +212,25 @@ export async function queryDataJudAggregation(tribunal, dsl) {
   const url = `${DATAJUD_BASE_URL}/api_publica_${tribunal}/_search`;
   const apiKey = secrets.get("DATAJUD_API_KEY") || DATAJUD_API_KEY_PUBLICA;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      // Formato exigido pela Wiki do CNJ: "Authorization: APIKey <chave>"
-      Authorization: `APIKey ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(dsl),
-  });
+  // O DataJud responde 429 (es_rejected_execution_exception) quando sua fila
+  // de buscas satura; nesses casos (e em 5xx) repetimos com espera crescente.
+  let res;
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        // Formato exigido pela Wiki do CNJ: "Authorization: APIKey <chave>"
+        Authorization: `APIKey ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dsl),
+    });
+    if (res.status !== 429 && res.status < 500) break;
+    if (tentativa < 4) {
+      await res.body?.cancel();
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** tentativa + Math.random() * 1000));
+    }
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -232,6 +242,7 @@ export async function queryDataJudAggregation(tribunal, dsl) {
 // Tribunais de índice pesado que falham sob carga concorrente: consultados à
 // parte, após os demais, com uma nova tentativa em caso de falha.
 export const TRIBUNAIS_ISOLADOS = ["tjrs"];
+const CONCORRENCIA = 4;
 
 const settle = (p) =>
   p.then((value) => ({ status: "fulfilled", value }), (reason) => ({ status: "rejected", reason }));
@@ -242,8 +253,15 @@ export async function queryTribunais(tribunals, dsl) {
   const demais = tribunals.filter((t) => !TRIBUNAIS_ISOLADOS.includes(t));
   const isolados = tribunals.filter((t) => TRIBUNAIS_ISOLADOS.includes(t));
   const res = new Map();
-  const paralelos = await Promise.allSettled(demais.map((t) => queryDataJudAggregation(t, dsl)));
-  paralelos.forEach((r, i) => res.set(demais[i], r));
+  // Concorrência limitada para não saturar a fila de buscas do DataJud.
+  const fila = [...demais];
+  const worker = async () => {
+    while (fila.length) {
+      const t = fila.shift();
+      res.set(t, await settle(queryDataJudAggregation(t, dsl)));
+    }
+  };
+  await Promise.all(Array.from({ length: CONCORRENCIA }, worker));
   for (const t of isolados) {
     let r = await settle(queryDataJudAggregation(t, dsl));
     if (r.status === "rejected") r = await settle(queryDataJudAggregation(t, dsl));
