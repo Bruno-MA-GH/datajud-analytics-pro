@@ -34,7 +34,7 @@ export function GratuidadeSegmentadaChart({ data }) {
           Gratuidade estrutural (JE) × benefício real (Justiça Comum)
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Ações aéreas distribuídas por ano, segundo o grau de origem (JE ou G1)
+          Ações aéreas distribuídas por ano, segundo o rito da classe processual (JE ou Justiça Comum)
         </p>
       </div>
       <div className="h-80 w-full">

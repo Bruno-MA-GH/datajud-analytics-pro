@@ -9,6 +9,7 @@ import {
   MOVIMENTOS_SEM_MERITO_NOMES,
   MOVIMENTOS_ACORDO_NOMES,
   SCRIPT_DURACAO_DIAS,
+  queryRitoJE,
 } from "../../shared/datajud.ts";
 
 // =============================================================================
@@ -43,10 +44,14 @@ export default async function (req) {
       Array.isArray(body.tribunals) && body.tribunals.length
         ? body.tribunals
         : TRIBUNAIS_DEFAULT;
-    // Recorte opcional por grau de origem: "JE" (Juizado) ou "G1" (Justiça Comum).
-    const grauFiltro = ["JE", "G1"].includes(body.grau)
-      ? [{ term: { "grau.keyword": body.grau } }]
-      : [];
+    // Recorte opcional por rito (classe processual + desempate por grau):
+    // "JE" (Juizado Especial) ou "COMUM" (Justiça Comum).
+    const grauFiltro =
+      body.rito === "JE"
+        ? [queryRitoJE()]
+        : body.rito === "COMUM"
+        ? [{ bool: { must_not: [queryRitoJE()] } }]
+        : [];
 
     const dsl = {
       size: 0,

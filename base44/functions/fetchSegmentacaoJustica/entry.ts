@@ -6,7 +6,7 @@ import {
   MOVIMENTOS_JUS_GRATUITA_NOMES,
   MOVIMENTOS_INDEFERIMENTO_NOMES,
   SCRIPT_DATA_AJUIZAMENTO_YYYYMM,
-  GRAUS_ORIGEM,
+  queryRitoJE,
   toYearMonth,
 } from "../../shared/datajud.ts";
 
@@ -18,9 +18,9 @@ import {
 //                    jeGratuidadeMovimento }], tribunais_ok, tribunais_falhas }
 //
 // Metodologia:
-//   - Campo "grau.keyword" do DataJud: JE = Juizado Especial; G1 = 1º grau da
-//     Justiça Comum. Contamos apenas os graus de ORIGEM (JE e G1) — TR e G2
-//     são fases recursais do mesmo processo e duplicariam a contagem.
+//   - Rito definido pela CLASSE processual (queryRitoJE), com desempate pelo
+//     grau nas classes genéricas. Mesmo universo do gráfico de volume, de modo
+//     que JE + Comum = total de ações aéreas.
 //   - No JE a gratuidade é ESTRUTURAL (Lei 9.099/95, art. 54): todo processo
 //     de 1º grau dispensa custas, sem necessidade de deferimento.
 //   - Na Justiça Comum a gratuidade é um BENEFÍCIO REAL, registrado pelo
@@ -45,7 +45,6 @@ export default async function (req) {
         bool: {
           filter: [
             { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
-            { terms: { "grau.keyword": GRAUS_ORIGEM } },
           ],
         },
       },
@@ -53,8 +52,8 @@ export default async function (req) {
         por_mes: {
           terms: { script: { source: SCRIPT_DATA_AJUIZAMENTO_YYYYMM }, size: 400 },
           aggs: {
-            por_grau: {
-              terms: { field: "grau.keyword", size: 5 },
+            por_rito: {
+              filters: { filters: { JE: queryRitoJE() }, other_bucket_key: "COMUM" },
               aggs: {
                 gratuidade: {
                   filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_JUS_GRATUITA_NOMES } },
@@ -88,16 +87,13 @@ export default async function (req) {
         const cur = merged.get(month) || {
           je: 0, comum: 0, comumGratuidade: 0, comumIndeferimento: 0, jeGratuidadeMovimento: 0,
         };
-        for (const g of b.por_grau?.buckets || []) {
-          if (g.key === "JE") {
-            cur.je += g.doc_count || 0;
-            cur.jeGratuidadeMovimento += g.gratuidade?.doc_count || 0;
-          } else if (g.key === "G1") {
-            cur.comum += g.doc_count || 0;
-            cur.comumGratuidade += g.gratuidade?.doc_count || 0;
-            cur.comumIndeferimento += g.indeferimento?.doc_count || 0;
-          }
-        }
+        const je = b.por_rito?.buckets?.JE || {};
+        const comum = b.por_rito?.buckets?.COMUM || {};
+        cur.je += je.doc_count || 0;
+        cur.jeGratuidadeMovimento += je.gratuidade?.doc_count || 0;
+        cur.comum += comum.doc_count || 0;
+        cur.comumGratuidade += comum.gratuidade?.doc_count || 0;
+        cur.comumIndeferimento += comum.indeferimento?.doc_count || 0;
         merged.set(month, cur);
       }
       ok.push(t);

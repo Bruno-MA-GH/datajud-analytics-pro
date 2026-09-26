@@ -34,8 +34,8 @@ export default function LegalDashboard() {
         base44.functions.invoke("fetchJusticeGratuita", { tribunals: ts }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts }),
         base44.functions.invoke("fetchSegmentacaoJustica", { tribunals: ts }),
-        base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, grau: "JE" }),
-        base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, grau: "G1" }),
+        base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, rito: "JE" }),
+        base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, rito: "COMUM" }),
       ]);
       setSegmentacao(segRes.data?.serie || []);
       setPorRito({ je: trJeRes.data, comum: trG1Res.data });
@@ -195,7 +195,8 @@ export default function LegalDashboard() {
                 <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
                   No JE a gratuidade é estrutural (Lei 9.099/95, art. 54) e não gera
                   movimento de deferimento; na Justiça Comum ela é um benefício real,
-                  concedido caso a caso. Contagem pelo grau de origem (JE ou G1).
+                  concedido caso a caso. Rito identificado pela classe processual,
+                  incluindo as fases recursais de cada justiça.
                 </p>
               </div>
               <SegmentacaoResumo data={segmentacao} />
@@ -231,9 +232,15 @@ export default function LegalDashboard() {
                 procedência em parte, extinção sem resolução do mérito e transação).
               </p>
               <p>
-                Tipo de justiça: campo <code className="rounded bg-muted px-1 py-0.5">grau</code> do
-                DataJud — JE (Juizado Especial) e G1 (1º grau da Justiça Comum). Fases recursais
-                (TR e G2) são excluídas do recorte para não duplicar a contagem de distribuição.
+                Tipo de justiça: definido pela <code className="rounded bg-muted px-1 py-0.5">classe</code> processual,
+                que acompanha a natureza do processo em todas as instâncias. Juizado Especial:
+                "Procedimento do Juizado Especial Cível", "Recurso Inominado" e demais classes
+                próprias do microssistema; Justiça Comum: "Procedimento Comum Cível", "Apelação
+                Cível" e congêneres. Desempate para classes genéricas (cumprimento de sentença,
+                embargos, petições): pelo <code className="rounded bg-muted px-1 py-0.5">grau</code> —
+                JE e turmas recursais (TR/TRU/TNU) para o Juizado; G1, G2 e demais para a Justiça
+                Comum. O recorte cobre o mesmo universo do gráfico de volume, de modo que JE +
+                Justiça Comum = total de ações aéreas.
               </p>
             </footer>
           </>

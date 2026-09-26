@@ -21,7 +21,7 @@ export function ComparativoRitoCard({ je, comum }) {
         Eficiência e desfecho por tipo de justiça
       </h3>
       <p className="text-xs text-muted-foreground mt-1 mb-4">
-        Rito sumaríssimo (JE) × rito comum (G1)
+        Rito sumaríssimo (JE) × rito comum · por classe processual
       </p>
       <div className="grid grid-cols-3 border-b border-border/70 pb-2 text-xs font-medium text-muted-foreground">
         <span>Indicador</span>

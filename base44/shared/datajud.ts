@@ -101,6 +101,55 @@ export const SCRIPT_DURACAO_DIAS =
 // contagem de distribuição.
 export const GRAUS_ORIGEM = ["JE", "G1"];
 
+// ---------------------------------------------------------------------------
+// Classificação do RITO pela CLASSE processual (campo "classe.nome.keyword").
+// A classe acompanha a natureza do processo e não muda na subida de instância
+// (o recurso do Juizado é "Recurso Inominado"; o da Justiça Comum, "Apelação").
+// Classes levantadas empiricamente no universo de ações aéreas do DataJud.
+// ---------------------------------------------------------------------------
+export const CLASSES_JE = [
+  "Procedimento do Juizado Especial Cível",
+  "Procedimento do Juizado Especial da Fazenda Pública",
+  "Recurso Inominado Cível",
+  "Recurso Inominado",
+  "Pedido de Uniformização de Interpretação de Lei Cível",
+  "Recurso de Medida Cautelar Cível",
+];
+export const CLASSES_COMUM = [
+  "Procedimento Comum Cível",
+  "Procedimento Comum",
+  "Procedimento Sumário",
+  "Apelação Cível",
+  "Apelação / Remessa Necessária",
+  "Ação Civil Pública",
+  "Ação Civil Coletiva",
+  "Monitória",
+];
+// Desempate para classes genéricas (cumprimento de sentença, embargos,
+// petição etc.): usa o grau — JE e turmas recursais (TR/TRU/TNU) -> Juizado.
+export const GRAUS_DESEMPATE_JE = ["JE", "TR", "TRU", "TNU"];
+
+// Query que identifica processos do rito do Juizado Especial. Todo o restante
+// é Justiça Comum, garantindo que JE + Comum = universo total.
+export function queryRitoJE() {
+  return {
+    bool: {
+      should: [
+        { terms: { "classe.nome.keyword": CLASSES_JE } },
+        {
+          bool: {
+            filter: [{ terms: { "grau.keyword": GRAUS_DESEMPATE_JE } }],
+            must_not: [
+              { terms: { "classe.nome.keyword": [...CLASSES_JE, ...CLASSES_COMUM] } },
+            ],
+          },
+        },
+      ],
+      minimum_should_match: 1,
+    },
+  };
+}
+
 // Tribunais consultados por padrão (principais TJ estaduais + TRF).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",
