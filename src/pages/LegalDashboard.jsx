@@ -8,6 +8,9 @@ import { JusticeGratuitaChart } from "@/components/dashboard/JusticeGratuitaChar
 import { TribunalFilter } from "@/components/dashboard/TribunalFilter";
 import { TramitacaoCard } from "@/components/dashboard/TramitacaoCard";
 import { ResultadoCard } from "@/components/dashboard/ResultadoCard";
+import { GratuidadeSegmentadaChart } from "@/components/dashboard/GratuidadeSegmentadaChart";
+import { SegmentacaoResumo } from "@/components/dashboard/SegmentacaoResumo";
+import { ComparativoRitoCard } from "@/components/dashboard/ComparativoRitoCard";
 import { DEFAULT_TRIBUNALS } from "@/lib/tribunals";
 
 export default function LegalDashboard() {
@@ -16,6 +19,8 @@ export default function LegalDashboard() {
   const [jusG, setJusG] = useState([]);
   const [tramitacao, setTramitacao] = useState(null);
   const [resultado, setResultado] = useState(null);
+  const [segmentacao, setSegmentacao] = useState([]);
+  const [porRito, setPorRito] = useState({ je: null, comum: null });
   const [meta, setMeta] = useState({ ok: [], falhas: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,11 +29,16 @@ export default function LegalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [volRes, jgRes, trRes] = await Promise.all([
+      const [volRes, jgRes, trRes, segRes, trJeRes, trG1Res] = await Promise.all([
         base44.functions.invoke("fetchAviationVolume", { tribunals: ts }),
         base44.functions.invoke("fetchJusticeGratuita", { tribunals: ts }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts }),
+        base44.functions.invoke("fetchSegmentacaoJustica", { tribunals: ts }),
+        base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, grau: "JE" }),
+        base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, grau: "G1" }),
       ]);
+      setSegmentacao(segRes.data?.serie || []);
+      setPorRito({ je: trJeRes.data, comum: trG1Res.data });
       setVolume(volRes.data?.serie || []);
       setJusG(jgRes.data?.serie || []);
       setTramitacao(trRes.data?.tramitacao || null);
@@ -176,6 +186,25 @@ export default function LegalDashboard() {
               <ResultadoCard resultado={resultado} />
             </section>
 
+            {/* Recorte Juizado Especial × Justiça Comum */}
+            <section className="mt-10 space-y-4">
+              <div>
+                <h2 className="font-heading text-xl font-semibold tracking-tight">
+                  Juizado Especial × Justiça Comum
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
+                  No JE a gratuidade é estrutural (Lei 9.099/95, art. 54) e não gera
+                  movimento de deferimento; na Justiça Comum ela é um benefício real,
+                  concedido caso a caso. Contagem pelo grau de origem (JE ou G1).
+                </p>
+              </div>
+              <SegmentacaoResumo data={segmentacao} />
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <GratuidadeSegmentadaChart data={segmentacao} />
+                <ComparativoRitoCard je={porRito.je} comum={porRito.comum} />
+              </div>
+            </section>
+
             {/* Rodapé metodológico */}
             <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
               <p>
@@ -200,6 +229,11 @@ export default function LegalDashboard() {
                 restrita a registros com data válida. Resultado do julgamento: varredura
                 dos movimentos do TPU de Magistratura (procedência, improcedência,
                 procedência em parte, extinção sem resolução do mérito e transação).
+              </p>
+              <p>
+                Tipo de justiça: campo <code className="rounded bg-muted px-1 py-0.5">grau</code> do
+                DataJud — JE (Juizado Especial) e G1 (1º grau da Justiça Comum). Fases recursais
+                (TR e G2) são excluídas do recorte para não duplicar a contagem de distribuição.
               </p>
             </footer>
           </>

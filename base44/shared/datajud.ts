@@ -96,6 +96,11 @@ export const MOVIMENTOS_ACORDO_NOMES = [
 export const SCRIPT_DURACAO_DIAS =
   "if(doc['dataAjuizamento'].size()==0) return 0; long a=doc['dataAjuizamento'].value.toInstant().toEpochMilli(); long mx=0; for(d in doc['movimentos.dataHora']){long v=d.toInstant().toEpochMilli(); if(v>mx){mx=v;}} if(mx<=a) return 0; return (mx-a)/86400000L;";
 
+// Graus de ORIGEM do processo (campo "grau.keyword"): JE = Juizado Especial,
+// G1 = 1º grau da Justiça Comum. TR/G2 são fases recursais e duplicariam a
+// contagem de distribuição.
+export const GRAUS_ORIGEM = ["JE", "G1"];
+
 // Tribunais consultados por padrão (principais TJ estaduais + TRF).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",

@@ -43,6 +43,10 @@ export default async function (req) {
       Array.isArray(body.tribunals) && body.tribunals.length
         ? body.tribunals
         : TRIBUNAIS_DEFAULT;
+    // Recorte opcional por grau de origem: "JE" (Juizado) ou "G1" (Justiça Comum).
+    const grauFiltro = ["JE", "G1"].includes(body.grau)
+      ? [{ term: { "grau.keyword": body.grau } }]
+      : [];
 
     const dsl = {
       size: 0,
@@ -52,6 +56,7 @@ export default async function (req) {
           filter: [
             { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
             { range: { dataAjuizamento: { gte: "2000-01-01", lte: "now" } } },
+            ...grauFiltro,
           ],
         },
       },
