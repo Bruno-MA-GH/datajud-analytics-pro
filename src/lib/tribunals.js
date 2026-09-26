@@ -12,7 +12,7 @@ export const TRIBUNAL_OPTIONS = [
   { value: "tjpe", label: "TJPE · Pernambuco" },
   { value: "tjsc", label: "TJSC · Santa Catarina" },
   { value: "tjgo", label: "TJGO · Goiás" },
-  { value: "tjdf", label: "TJDF · Distrito Federal" },
+  { value: "tjdft", label: "TJDFT · Distrito Federal e Territórios" },
   { value: "tjes", label: "TJES · Espírito Santo" },
   { value: "tjmt", label: "TJMT · Mato Grosso" },
   { value: "tjms", label: "TJMS · Mato Grosso do Sul" },

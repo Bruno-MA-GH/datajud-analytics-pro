@@ -125,12 +125,29 @@ export const CLASSES_COMUM = [
   "Ação Civil Coletiva",
   "Monitória",
 ];
-// Desempate para classes genéricas (cumprimento de sentença, embargos,
-// petição etc.): usa o grau — JE e turmas recursais (TR/TRU/TNU) -> Juizado.
+// Fase de CUMPRIMENTO DE SENTENÇA: registro autônomo no DataJud (a classe do
+// processo é alterada ao iniciar a execução do julgado). Não é nova demanda,
+// mas a fase executiva de uma ação já contada — por isso é individualizada.
+export const CLASSES_CUMPRIMENTO = [
+  "Cumprimento de sentença",
+  "Cumprimento de Sentença",
+  "Cumprimento Provisório de Sentença",
+  "Cumprimento Provisório de Decisão",
+  "Cumprimento de Sentença contra a Fazenda Pública",
+];
+
+export function queryCumprimento() {
+  return { terms: { "classe.nome.keyword": CLASSES_CUMPRIMENTO } };
+}
+
+// Desempate para as demais classes genéricas (embargos, petição etc.): usa o
+// grau — JE e turmas recursais (TR/TRU/TNU) -> Juizado.
 export const GRAUS_DESEMPATE_JE = ["JE", "TR", "TRU", "TNU"];
 
-// Query que identifica processos do rito do Juizado Especial. Todo o restante
-// é Justiça Comum, garantindo que JE + Comum = universo total.
+// Query que identifica processos do rito do Juizado Especial (fase de
+// conhecimento/recursal; cumprimento de sentença fica de fora). Todo o
+// restante que não é cumprimento é Justiça Comum, de modo que
+// JE + Comum + Cumprimento = universo total.
 export function queryRitoJE() {
   return {
     bool: {
@@ -140,7 +157,11 @@ export function queryRitoJE() {
           bool: {
             filter: [{ terms: { "grau.keyword": GRAUS_DESEMPATE_JE } }],
             must_not: [
-              { terms: { "classe.nome.keyword": [...CLASSES_JE, ...CLASSES_COMUM] } },
+              {
+                terms: {
+                  "classe.nome.keyword": [...CLASSES_JE, ...CLASSES_COMUM, ...CLASSES_CUMPRIMENTO],
+                },
+              },
             ],
           },
         },
@@ -153,7 +174,7 @@ export function queryRitoJE() {
 // Tribunais consultados por padrão (principais TJ estaduais + TRF).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",
-  "tjsc", "tjgo", "tjdf", "tjes", "tjmt", "tjms", "tjpa", "tjam",
+  "tjsc", "tjgo", "tjdft", "tjes", "tjmt", "tjms", "tjpa", "tjam",
   "trf1", "trf2", "trf3", "trf4", "trf5", "trf6",
 ];
 
@@ -206,4 +227,27 @@ export async function queryDataJudAggregation(tribunal, dsl) {
     throw new Error(`DataJud ${tribunal} HTTP ${res.status}: ${text.slice(0, 200)}`);
   }
   return await res.json();
+}
+
+// Tribunais de índice pesado que falham sob carga concorrente: consultados à
+// parte, após os demais, com uma nova tentativa em caso de falha.
+export const TRIBUNAIS_ISOLADOS = ["tjrs"];
+
+const settle = (p) =>
+  p.then((value) => ({ status: "fulfilled", value }), (reason) => ({ status: "rejected", reason }));
+
+// Consulta todos os tribunais e devolve resultados no formato de
+// Promise.allSettled, na mesma ordem da lista recebida.
+export async function queryTribunais(tribunals, dsl) {
+  const demais = tribunals.filter((t) => !TRIBUNAIS_ISOLADOS.includes(t));
+  const isolados = tribunals.filter((t) => TRIBUNAIS_ISOLADOS.includes(t));
+  const res = new Map();
+  const paralelos = await Promise.allSettled(demais.map((t) => queryDataJudAggregation(t, dsl)));
+  paralelos.forEach((r, i) => res.set(demais[i], r));
+  for (const t of isolados) {
+    let r = await settle(queryDataJudAggregation(t, dsl));
+    if (r.status === "rejected") r = await settle(queryDataJudAggregation(t, dsl));
+    res.set(t, r);
+  }
+  return tribunals.map((t) => res.get(t));
 }
