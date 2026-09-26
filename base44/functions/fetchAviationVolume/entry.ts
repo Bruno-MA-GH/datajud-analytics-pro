@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
-  queryDataJudAggregation,
+  queryTribunais,
   TRIBUNAIS_DEFAULT,
   ASSUNTOS_AEREA_NOMES,
   SCRIPT_DATA_AJUIZAMENTO_YYYYMM,
@@ -57,9 +57,7 @@ export default async function (req) {
 
     // Dispara todos os tribunais em paralelo; falhas individuais não derrubam
     // o agregado (alguns índices podem estar indisponíveis).
-    const results = await Promise.allSettled(
-      tribunals.map((t) => queryDataJudAggregation(t, dsl))
-    );
+    const results = await queryTribunais(tribunals, dsl);
 
     const merged = new Map(); // "yyyy-MM" -> count
     const ok = [];

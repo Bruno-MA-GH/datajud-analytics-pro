@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
-  queryDataJudAggregation,
+  queryTribunais,
   TRIBUNAIS_DEFAULT,
   ASSUNTOS_AEREA_NOMES,
   ASSUNTOS_JUS_GRATUITA_NOMES,
@@ -85,9 +85,7 @@ export default async function (req) {
       },
     };
 
-    const results = await Promise.allSettled(
-      tribunals.map((t) => queryDataJudAggregation(t, dsl))
-    );
+    const results = await queryTribunais(tribunals, dsl);
 
     const merged = new Map(); // "yyyy-MM" -> { total, comGratuidade }
     const ok = [];

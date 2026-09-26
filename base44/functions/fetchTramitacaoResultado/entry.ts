@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
-  queryDataJudAggregation,
+  queryTribunais,
+  queryCumprimento,
   TRIBUNAIS_DEFAULT,
   ASSUNTOS_AEREA_NOMES,
   MOVIMENTOS_PROCEDENCIA_NOMES,
@@ -45,12 +46,13 @@ export default async function (req) {
         ? body.tribunals
         : TRIBUNAIS_DEFAULT;
     // Recorte opcional por rito (classe processual + desempate por grau):
-    // "JE" (Juizado Especial) ou "COMUM" (Justiça Comum).
+    // "JE" (Juizado Especial) ou "COMUM" (Justiça Comum). A fase de
+    // cumprimento de sentença fica fora de ambos os recortes.
     const grauFiltro =
       body.rito === "JE"
         ? [queryRitoJE()]
         : body.rito === "COMUM"
-        ? [{ bool: { must_not: [queryRitoJE()] } }]
+        ? [{ bool: { must_not: [queryRitoJE(), queryCumprimento()] } }]
         : [];
 
     const dsl = {
@@ -90,9 +92,7 @@ export default async function (req) {
       },
     };
 
-    const results = await Promise.allSettled(
-      tribunals.map((t) => queryDataJudAggregation(t, dsl))
-    );
+    const results = await queryTribunais(tribunals, dsl);
 
     let total = 0;
     let somaDias = 0; // média ponderada pelo nº de processos de cada tribunal

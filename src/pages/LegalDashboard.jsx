@@ -236,11 +236,27 @@ export default function LegalDashboard() {
                 que acompanha a natureza do processo em todas as instâncias. Juizado Especial:
                 "Procedimento do Juizado Especial Cível", "Recurso Inominado" e demais classes
                 próprias do microssistema; Justiça Comum: "Procedimento Comum Cível", "Apelação
-                Cível" e congêneres. Desempate para classes genéricas (cumprimento de sentença,
-                embargos, petições): pelo <code className="rounded bg-muted px-1 py-0.5">grau</code> —
+                Cível" e congêneres. Desempate para as demais classes genéricas (embargos,
+                petições): pelo <code className="rounded bg-muted px-1 py-0.5">grau</code> —
                 JE e turmas recursais (TR/TRU/TNU) para o Juizado; G1, G2 e demais para a Justiça
                 Comum. O recorte cobre o mesmo universo do gráfico de volume, de modo que JE +
-                Justiça Comum = total de ações aéreas.
+                Justiça Comum + cumprimento de sentença = total de ações aéreas.
+              </p>
+              <p>
+                Cumprimento de sentença: individualizado em categoria própria. No DataJud, ao
+                iniciar a execução do julgado o processo passa a ser registrado com a classe
+                "Cumprimento de sentença" (ou "Cumprimento Provisório de Sentença/Decisão"),
+                perdendo a classe original que indicaria o rito. Esse registro não representa
+                nova demanda, mas a fase executiva de uma ação já ajuizada; por isso não é
+                atribuído ao Juizado nem à Justiça Comum, evitando inflar a distribuição de
+                qualquer dos ritos com uma classificação por mera inferência de grau. Também é
+                excluído do comparativo de tramitação e resultado por rito.
+              </p>
+              <p>
+                Cobertura: 22 tribunais (TJs e TRFs), incluindo o TJDFT (índice
+                <code className="mx-1 rounded bg-muted px-1 py-0.5">api_publica_tjdft</code>).
+                O TJRS, de índice mais pesado, é consultado à parte após os demais, com nova
+                tentativa em caso de falha, para garantir sua inclusão em todas as cargas.
               </p>
             </footer>
           </>

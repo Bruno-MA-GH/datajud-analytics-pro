@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.49";
 import {
-  queryDataJudAggregation,
+  queryTribunais,
+  queryCumprimento,
   TRIBUNAIS_DEFAULT,
   ASSUNTOS_AEREA_NOMES,
   MOVIMENTOS_JUS_GRATUITA_NOMES,
@@ -53,7 +54,10 @@ export default async function (req) {
           terms: { script: { source: SCRIPT_DATA_AJUIZAMENTO_YYYYMM }, size: 400 },
           aggs: {
             por_rito: {
-              filters: { filters: { JE: queryRitoJE() }, other_bucket_key: "COMUM" },
+              filters: {
+                filters: { JE: queryRitoJE(), CUMPRIMENTO: queryCumprimento() },
+                other_bucket_key: "COMUM",
+              },
               aggs: {
                 gratuidade: {
                   filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_JUS_GRATUITA_NOMES } },
@@ -68,9 +72,7 @@ export default async function (req) {
       },
     };
 
-    const results = await Promise.allSettled(
-      tribunals.map((t) => queryDataJudAggregation(t, dsl))
-    );
+    const results = await queryTribunais(tribunals, dsl);
 
     const merged = new Map();
     const ok = [];
@@ -85,8 +87,9 @@ export default async function (req) {
       for (const b of r.value?.aggregations?.por_mes?.buckets || []) {
         const month = toYearMonth(b.key);
         const cur = merged.get(month) || {
-          je: 0, comum: 0, comumGratuidade: 0, comumIndeferimento: 0, jeGratuidadeMovimento: 0,
+          je: 0, comum: 0, cumprimento: 0, comumGratuidade: 0, comumIndeferimento: 0, jeGratuidadeMovimento: 0,
         };
+        cur.cumprimento += b.por_rito?.buckets?.CUMPRIMENTO?.doc_count || 0;
         const je = b.por_rito?.buckets?.JE || {};
         const comum = b.por_rito?.buckets?.COMUM || {};
         cur.je += je.doc_count || 0;

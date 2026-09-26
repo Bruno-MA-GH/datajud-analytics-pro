@@ -11,6 +11,7 @@ const SERIES = {
   je: "Juizado Especial (estrutural)",
   comumGratuidade: "Justiça Comum · gratuidade deferida",
   comumSem: "Justiça Comum · sem gratuidade registrada",
+  cumprimento: "Cumprimento de sentença (fase executiva)",
 };
 
 export function GratuidadeSegmentadaChart({ data }) {
@@ -18,7 +19,8 @@ export function GratuidadeSegmentadaChart({ data }) {
     const byYear = new Map();
     for (const d of data) {
       const y = (d.month || "").slice(0, 4);
-      const cur = byYear.get(y) || { year: y, je: 0, comumGratuidade: 0, comumSem: 0 };
+      const cur = byYear.get(y) || { year: y, je: 0, comumGratuidade: 0, comumSem: 0, cumprimento: 0 };
+      cur.cumprimento += d.cumprimento || 0;
       cur.je += d.je || 0;
       cur.comumGratuidade += d.comumGratuidade || 0;
       cur.comumSem += Math.max((d.comum || 0) - (d.comumGratuidade || 0), 0);
@@ -34,7 +36,7 @@ export function GratuidadeSegmentadaChart({ data }) {
           Gratuidade estrutural (JE) × benefício real (Justiça Comum)
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Ações aéreas distribuídas por ano, segundo o rito da classe processual (JE ou Justiça Comum)
+          Ações aéreas distribuídas por ano, segundo o rito da classe processual, com a fase de cumprimento de sentença individualizada
         </p>
       </div>
       <div className="h-80 w-full">
@@ -54,7 +56,8 @@ export function GratuidadeSegmentadaChart({ data }) {
             />
             <Bar dataKey="je" stackId="a" fill="#1e3a5f" />
             <Bar dataKey="comumGratuidade" stackId="a" fill="#c98a2a" />
-            <Bar dataKey="comumSem" stackId="a" fill="#cbd5e1" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="comumSem" stackId="a" fill="#cbd5e1" />
+            <Bar dataKey="cumprimento" stackId="a" fill="#6b8e7f" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

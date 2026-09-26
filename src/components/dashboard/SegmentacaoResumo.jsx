@@ -14,8 +14,9 @@ export function SegmentacaoResumo({ data }) {
           comum: s.comum + (d.comum || 0),
           grat: s.grat + (d.comumGratuidade || 0),
           indef: s.indef + (d.comumIndeferimento || 0),
+          cump: s.cump + (d.cumprimento || 0),
         }),
-        { je: 0, comum: 0, grat: 0, indef: 0 }
+        { je: 0, comum: 0, grat: 0, indef: 0, cump: 0 }
       ),
     [data]
   );
@@ -27,7 +28,7 @@ export function SegmentacaoResumo({ data }) {
         icon={Landmark}
         label="Distribuídas no Juizado Especial"
         value={`${pct(t.je, total)}%`}
-        hint={`${t.je.toLocaleString("pt-BR")} JE · ${t.comum.toLocaleString("pt-BR")} Justiça Comum`}
+        hint={`${t.je.toLocaleString("pt-BR")} JE · ${t.comum.toLocaleString("pt-BR")} Justiça Comum · ${t.cump.toLocaleString("pt-BR")} cumprimentos de sentença à parte`}
       />
       <MetricCard
         icon={Scale}
