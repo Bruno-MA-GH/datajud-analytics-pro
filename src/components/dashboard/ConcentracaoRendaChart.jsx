@@ -26,7 +26,7 @@ export function ConcentracaoRendaChart({ data }) {
         </div>
       </div>
       <div className="mt-4">
-        <MunicipioHover ponto={ponto} />
+        <MunicipioHover ponto={ponto} taxaMedia={c?.populacao ? c.noUniverso / c.populacao : 0} />
       </div>
       <div className="mt-2 h-80">
         <ResponsiveContainer width="100%" height="100%">
