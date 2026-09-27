@@ -25,6 +25,21 @@ export const notaRito = (
   </>
 );
 
+export const notaLotes = (
+  <p>Lote: par órgão julgador + dia de <C>dataAjuizamento</C> com 10 ou mais ações aéreas originárias (graus JE e G1). Datas gravadas como dígitos (yyyyMMddHHmmss) são reconstruídas. Lotes indicam protocolo em bloco, mas também podem refletir redistribuição ou migração de sistema em uma data única, o que exige leitura qualitativa dos maiores casos.</p>
+);
+
+export const notaIncentivos = (
+  <>
+    <p>Taxa de acordo: processos com movimento de homologação de transação ÷ ações de conhecimento. Conversão em execução: registros na classe "Cumprimento de sentença" ÷ ações de conhecimento; indica se o réu precisou ser executado em vez de pagar espontaneamente.</p>
+    <p>Movimentos por processo: total de movimentos registrados ÷ processos, como aproximação do esforço processual. Índice de baixa: processos com movimento de arquivamento ou baixa definitiva ÷ total distribuído no tribunal, uma medida de vazão proporcional ao volume.</p>
+  </>
+);
+
+export const notaTipoDano = (
+  <p>Séries separadas pelo assunto (atraso, cancelamento e extravio de bagagem; as grafias "vôo" e "voo" são unificadas). Um processo com mais de um desses assuntos é contado em cada um. Sazonalidade: soma de todos os anos por mês do calendário. A duração média considera apenas registros com data de ajuizamento válida.</p>
+);
+
 export const notaConcentracao = (
   <>
     <p>Índice de concentração (Gini adaptado, sem dados de renda dos autores): municípios ordenados pelo PIB per capita (PIB dos Municípios 2023 / população do Censo 2022, IBGE-SIDRA); área entre a curva e a diagonal, por trapézio. Valor positivo indica concentração nos municípios mais ricos. No tooltip, o índice é acumulado até o município sob o cursor.</p>

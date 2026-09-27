@@ -14,7 +14,11 @@ import { ComparativoRitoCard } from "@/components/dashboard/ComparativoRitoCard"
 import { DEFAULT_TRIBUNALS } from "@/lib/tribunals";
 import { ConcentracaoRendaChart } from "@/components/dashboard/ConcentracaoRendaChart";
 import { AnalysisCarousel } from "@/components/dashboard/AnalysisCarousel";
-import { notaVolume, notaGratuidade, notaTramitacao, notaRito, notaConcentracao } from "@/components/dashboard/notasMetodologicas";
+import { notaVolume, notaGratuidade, notaTramitacao, notaRito, notaConcentracao, notaLotes, notaIncentivos, notaTipoDano } from "@/components/dashboard/notasMetodologicas";
+import { LotesChart } from "@/components/dashboard/LotesChart";
+import { IncentivosTable } from "@/components/dashboard/IncentivosTable";
+import { TipoDanoChart } from "@/components/dashboard/TipoDanoChart";
+import { SazonalidadeChart } from "@/components/dashboard/SazonalidadeChart";
 
 export default function LegalDashboard() {
   const [tribunals, setTribunals] = useState(DEFAULT_TRIBUNALS);
@@ -26,6 +30,9 @@ export default function LegalDashboard() {
   const [porRito, setPorRito] = useState({ je: null, comum: null });
   const [meta, setMeta] = useState({ ok: [], falhas: [] });
   const [concentracao, setConcentracao] = useState(null);
+  const [lotes, setLotes] = useState(null);
+  const [incentivos, setIncentivos] = useState(null);
+  const [tipoDano, setTipoDano] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,7 +40,7 @@ export default function LegalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [volRes, jgRes, trRes, segRes, trJeRes, trG1Res, concRes] = await Promise.all([
+      const [volRes, jgRes, trRes, segRes, trJeRes, trG1Res, concRes, lotRes, incRes, danoRes] = await Promise.all([
         base44.functions.invoke("fetchAviationVolume", { tribunals: ts }),
         base44.functions.invoke("fetchJusticeGratuita", { tribunals: ts }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts }),
@@ -41,8 +48,14 @@ export default function LegalDashboard() {
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, rito: "JE" }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, rito: "COMUM" }),
         base44.functions.invoke("fetchConcentracaoRenda", { tribunals: ts }),
+        base44.functions.invoke("fetchLotesAjuizamento", { tribunals: ts }),
+        base44.functions.invoke("fetchIncentivosTribunal", { tribunals: ts }),
+        base44.functions.invoke("fetchTipoDano", { tribunals: ts }),
       ]);
       setConcentracao(concRes.data);
+      setLotes(lotRes.data);
+      setIncentivos(incRes.data);
+      setTipoDano(danoRes.data);
       setSegmentacao(segRes.data?.serie || []);
       setPorRito({ je: trJeRes.data, comum: trG1Res.data });
       setVolume(volRes.data?.serie || []);
@@ -207,6 +220,18 @@ export default function LegalDashboard() {
                 nota: notaRito,
               },
               { titulo: "Litigância × renda municipal", conteudo: <ConcentracaoRendaChart data={concentracao} />, nota: notaConcentracao },
+              { titulo: "Lotes no mesmo dia", conteudo: <LotesChart data={lotes} />, nota: notaLotes },
+              { titulo: "Acordo, execução e baixa", conteudo: <IncentivosTable data={incentivos} />, nota: notaIncentivos },
+              {
+                titulo: "Tipo de dano e sazonalidade",
+                conteudo: (
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <TipoDanoChart data={tipoDano} />
+                    <SazonalidadeChart data={tipoDano} />
+                  </div>
+                ),
+                nota: notaTipoDano,
+              },
             ]} />
 
             {/* Rodapé: fonte e cobertura */}
