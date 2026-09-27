@@ -93,8 +93,18 @@ export const MOVIMENTOS_ACORDO_NOMES = [
 // Pressupõe query com range em dataAjuizamento (descarta datas mal-formatadas).
 // Sem movimentos ou data inconsistente -> 0.
 // ---------------------------------------------------------------------------
-export const SCRIPT_DURACAO_DIAS =
-  "if(doc['dataAjuizamento'].size()==0) return 0; long a=doc['dataAjuizamento'].value.toInstant().toEpochMilli(); long mx=0; for(d in doc['movimentos.dataHora']){long v=d.toInstant().toEpochMilli(); if(v>mx){mx=v;}} if(mx<=a) return 0; return (mx-a)/86400000L;";
+// Função Painless que reconstrói qualquer data do DataJud em epoch millis (UTC).
+// Datas ISO são usadas diretamente; datas gravadas como dígitos
+// "yyyyMMddHHmmss" (lidas pelo ES como epoch_millis → ano > 2100) são
+// decompostas e remontadas. Retorna -1 só se os dígitos forem impossíveis
+// (mês/dia inexistente). Deve ser prefixada a qualquer script que use datas.
+export const PAINLESS_NORMALIZA_DATA =
+  "long normData(def z){ if(z.getYear()<=2100){return z.toInstant().toEpochMilli();} long v=z.toInstant().toEpochMilli(); int y=(int)(v/10000000000L); int mo=(int)((v/100000000L)%100); int d=(int)((v/1000000L)%100); int h=(int)((v/10000L)%100); int mi=(int)((v/100L)%100); int s=(int)(v%100); if(mo<1||mo>12||d<1){return -1L;} int ult=LocalDate.of(y,mo,1).lengthOfMonth(); return ZonedDateTime.of(y,mo,(int)Math.min(d,ult),(int)Math.min(h,23),(int)Math.min(mi,59),(int)Math.min(s,59),0,ZoneId.of('Z')).toInstant().toEpochMilli(); } ";
+
+// Duração (dias) entre o ajuizamento e o último movimento, ambas as datas
+// normalizadas — nenhum processo é excluído pelo formato de armazenamento.
+export const SCRIPT_DURACAO_DIAS = PAINLESS_NORMALIZA_DATA +
+  "if(doc['dataAjuizamento'].size()==0) return 0; long a=normData(doc['dataAjuizamento'].value); if(a<0) return 0; long mx=0; for(d in doc['movimentos.dataHora']){long v=normData(d); if(v>mx){mx=v;}} if(mx<=a) return 0; return (mx-a)/86400000L;";
 
 // Graus de ORIGEM do processo (campo "grau.keyword"): JE = Juizado Especial,
 // G1 = 1º grau da Justiça Comum. TR/G2 são fases recursais e duplicariam a

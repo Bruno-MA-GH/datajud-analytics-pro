@@ -21,9 +21,8 @@ import {
 // (1) TEMPO DE TRAMITAÇÃO
 //     Duração (em dias) = último movimento processual (max movimentos.dataHora)
 //     menos dataAjuizamento. Calculada por documento via script Painless e
-//     resumida em média + percentis (p50/p90). O filtro de range em
-//     dataAjuizamento (2000-01-01 .. now) descarta os registros com data
-//     mal-formatada (que o ES parseia como epoch_millis -> século 26).
+//     resumida em média + percentis (p50/p90). As datas são reconstruídas
+//     pelo script (PAINLESS_NORMALIZA_DATA), sem excluir nenhum formato.
 //     Leitura teórica: cada dia de tramitação é custo social (Shavell) e custo
 //     individual do litigante (Vitorelli) — o "preço" temporal do litígio.
 //
@@ -62,7 +61,6 @@ export default async function (req) {
         bool: {
           filter: [
             { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
-            { range: { dataAjuizamento: { gte: "2000-01-01", lte: "now" } } },
             ...grauFiltro,
           ],
         },

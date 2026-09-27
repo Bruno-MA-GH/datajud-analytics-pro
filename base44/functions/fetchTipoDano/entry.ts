@@ -28,11 +28,8 @@ export default async function (req) {
           terms: { field: "assuntos.nome.keyword", include: ASSUNTOS_AEREA_NOMES, size: 10 },
           aggs: {
             mes: { terms: { script: { source: SCRIPT_DATA_AJUIZAMENTO_YYYYMM }, size: 400 } },
-            // Duração só onde a data é válida (o script pressupõe data ISO).
-            dataValida: {
-              filter: { range: { dataAjuizamento: { gte: "2000-01-01", lte: "now" } } },
-              aggs: { duracao: { avg: { script: { source: SCRIPT_DURACAO_DIAS } } } },
-            },
+            // Duração com datas normalizadas (todos os formatos de armazenamento).
+            duracao: { avg: { script: { source: SCRIPT_DURACAO_DIAS } } },
           },
         },
       },
@@ -51,8 +48,7 @@ export default async function (req) {
       ok.push(t);
       for (const b of r.value?.aggregations?.assunto?.buckets || []) {
         const k = tipo(b.key);
-        const dv = b.dataValida;
-        if (dv?.duracao?.value != null) { dur[k][0] += dv.duracao.value * dv.doc_count; dur[k][1] += dv.doc_count; }
+        if (b.duracao?.value != null) { dur[k][0] += b.duracao.value * b.doc_count; dur[k][1] += b.doc_count; }
         for (const m of b.mes?.buckets || []) {
           const key = Number(m.key);
           if (key < 200001 || key > limite) continue;

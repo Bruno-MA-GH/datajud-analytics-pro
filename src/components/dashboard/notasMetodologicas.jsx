@@ -14,7 +14,7 @@ export const notaGratuidade = (
 );
 
 export const notaTramitacao = (
-  <p>Tempo de tramitação: diferença em dias entre o último movimento processual e a <C>dataAjuizamento</C>, restrita a registros com data válida. Resultado do julgamento: varredura dos movimentos do TPU de Magistratura (procedência, improcedência, procedência em parte, extinção sem resolução do mérito e transação).</p>
+  <p>Tempo de tramitação: diferença em dias entre o último movimento processual e a <C>dataAjuizamento</C>. Todas as datas são reconstruídas antes do cálculo: as gravadas como dígitos "yyyyMMddHHmmss" são decompostas e remontadas, de modo que nenhum processo é excluído pelo formato de armazenamento. Resultado do julgamento: varredura dos movimentos do TPU de Magistratura (procedência, improcedência, procedência em parte, extinção sem resolução do mérito e transação).</p>
 );
 
 export const notaRito = (
@@ -37,7 +37,7 @@ export const notaIncentivos = (
 );
 
 export const notaTipoDano = (
-  <p>Séries separadas pelo assunto (atraso, cancelamento e extravio de bagagem; as grafias "vôo" e "voo" são unificadas). Um processo com mais de um desses assuntos é contado em cada um. Sazonalidade: soma de todos os anos por mês do calendário. A duração média considera apenas registros com data de ajuizamento válida.</p>
+  <p>Séries separadas pelo assunto (atraso, cancelamento e extravio de bagagem; as grafias "vôo" e "voo" são unificadas). Um processo com mais de um desses assuntos é contado em cada um. Sazonalidade: soma de todos os anos por mês do calendário. A duração média inclui todos os registros, com as datas de ajuizamento e de movimentação normalizadas antes do cálculo.</p>
 );
 
 export const notaTema = (
