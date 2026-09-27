@@ -40,6 +40,18 @@ export const notaTipoDano = (
   <p>Séries separadas pelo assunto (atraso, cancelamento e extravio de bagagem; as grafias "vôo" e "voo" são unificadas). Um processo com mais de um desses assuntos é contado em cada um. Sazonalidade: soma de todos os anos por mês do calendário. A duração média considera apenas registros com data de ajuizamento válida.</p>
 );
 
+export const notaTema = (
+  <>
+    <p>Marco: decisão do Min. Dias Toffoli no ARE 1.560.244/RJ, de 26/11/2025, que suspendeu nacionalmente os processos sobre o Tema 1.417 da Repercussão Geral (regime de responsabilidade por cancelamento, alteração ou atraso de voo: CBA × CDC). A repercussão geral foi reconhecida em 22/8/2025.</p>
+    <p>Estudo de evento: ações aéreas originárias (JE/G1) por mês de ajuizamento. A média "antes" usa nov/2024 a out/2025; a média "depois", dez/2025 em diante. O mês corrente fica fora das médias, e os meses mais recentes tendem a ser subestimados pelo atraso de envio dos tribunais ao DataJud.</p>
+    <p>Suspensos (aproximação): processos com movimento "Suspensão ou Sobrestamento", "Sobrestado" ou "Cumprimento de Suspensão ou Sobrestamento" e com alguma movimentação a partir de 26/11/2025. O DataJud não permite vincular a data ao movimento específico, então a contagem pode incluir suspensões anteriores por outros motivos. A suspensão alcança também o extravio de bagagem apenas se o tribunal assim a aplicar.</p>
+  </>
+);
+
+export const notaPredatoria = (
+  <p>Índice exploratório (0–100) por tribunal: média simples de dois indicadores normalizados entre o menor e o maior valor dos tribunais consultados, que são o percentual de ações originárias ajuizadas em lote (10 ou mais na mesma vara e no mesmo dia) e a taxa de acordo homologado. É um índice relativo entre os tribunais selecionados: um valor alto indica indícios, não a comprovação de litigância predatória, que exigiria dados de advogados e partes, ausentes na API pública.</p>
+);
+
 export const notaConcentracao = (
   <>
     <p>Índice de concentração (Gini adaptado, sem dados de renda dos autores): municípios ordenados pelo PIB per capita (PIB dos Municípios 2023 / população do Censo 2022, IBGE-SIDRA); área entre a curva e a diagonal, por trapézio. Valor positivo indica concentração nos municípios mais ricos. No tooltip, o índice é acumulado até o município sob o cursor.</p>
