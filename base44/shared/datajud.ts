@@ -101,6 +101,13 @@ export const MOVIMENTOS_ACORDO_NOMES = [
 export const PAINLESS_NORMALIZA_DATA =
   "long normData(def z){ if(z.getYear()<=2100){return z.toInstant().toEpochMilli();} long v=z.toInstant().toEpochMilli(); int y=(int)(v/10000000000L); int mo=(int)((v/100000000L)%100); int d=(int)((v/1000000L)%100); int h=(int)((v/10000L)%100); int mi=(int)((v/100L)%100); int s=(int)(v%100); if(mo<1||mo>12||d<1){return -1L;} int ult=LocalDate.of(y,mo,1).lengthOfMonth(); return ZonedDateTime.of(y,mo,(int)Math.min(d,ult),(int)Math.min(h,23),(int)Math.min(mi,59),(int)Math.min(s,59),0,ZoneId.of('Z')).toInstant().toEpochMilli(); } ";
 
+// Exclui processos cuja dataAjuizamento em dígitos forma data impossível
+// (ex.: mês 13, dia 00) — erro de cadastro no tribunal de origem.
+export const queryDataPossivel = () => ({
+  bool: { must_not: [{ script: { script: { source: PAINLESS_NORMALIZA_DATA +
+    "return doc['dataAjuizamento'].size()>0 && normData(doc['dataAjuizamento'].value)<0;" } } }] },
+});
+
 // Duração (dias) entre o ajuizamento e o último movimento, ambas as datas
 // normalizadas — nenhum processo é excluído pelo formato de armazenamento.
 export const SCRIPT_DURACAO_DIAS = PAINLESS_NORMALIZA_DATA +

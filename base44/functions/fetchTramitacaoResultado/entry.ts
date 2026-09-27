@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   queryTribunais,
   queryCumprimento,
+  queryDataPossivel,
   TRIBUNAIS_DEFAULT,
   ASSUNTOS_AEREA_NOMES,
   MOVIMENTOS_PROCEDENCIA_NOMES,
@@ -62,6 +63,7 @@ export default async function (req) {
           filter: [
             { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
             ...grauFiltro,
+            queryDataPossivel(),
           ],
         },
       },

@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
-  queryTribunais, TRIBUNAIS_DEFAULT, ASSUNTOS_AEREA_NOMES, SCRIPT_DATA_AJUIZAMENTO_YYYYMM, SCRIPT_DURACAO_DIAS, toYearMonth,
+  queryTribunais, TRIBUNAIS_DEFAULT, ASSUNTOS_AEREA_NOMES, SCRIPT_DATA_AJUIZAMENTO_YYYYMM, SCRIPT_DURACAO_DIAS, toYearMonth, queryDataPossivel,
 } from "../../shared/datajud.ts";
 
 // =============================================================================
@@ -22,6 +22,7 @@ export default async function (req) {
       size: 0,
       query: { bool: { filter: [
         { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
+        queryDataPossivel(),
       ] } },
       aggs: {
         assunto: {
