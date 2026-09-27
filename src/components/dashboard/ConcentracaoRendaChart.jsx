@@ -6,7 +6,17 @@ import { MunicipioHover } from "@/components/dashboard/MunicipioHover";
 
 export function ConcentracaoRendaChart({ data }) {
   const [ponto, setPonto] = useState(null);
-  const curva = useMemo(() => (data?.curva || []).map((p) => ({ ...p, igualdade: p.pop })), [data]);
+  // Índice acumulado (−1 a +1) até cada município: 2 × área entre diagonal e curva, por trapézio.
+  // No último ponto coincide com o índice global.
+  const curva = useMemo(() => {
+    let area = 0, px = 0, py = 0;
+    return (data?.curva || []).map((p) => {
+      const x = p.pop / 100, y = p.casos / 100;
+      area += (x - px) * ((px - py) + (x - y));
+      px = x; py = y;
+      return { ...p, igualdade: p.pop, indiceLocal: area };
+    });
+  }, [data]);
   const indice = data?.indice ?? 0;
   const c = data?.cobertura;
   return (
@@ -26,7 +36,7 @@ export function ConcentracaoRendaChart({ data }) {
         </div>
       </div>
       <div className="mt-4">
-        <MunicipioHover ponto={ponto} taxaMedia={c?.populacao ? c.noUniverso / c.populacao : 0} />
+        <MunicipioHover ponto={ponto} />
       </div>
       <div className="mt-2 h-80">
         <ResponsiveContainer width="100%" height="100%">
@@ -42,7 +52,7 @@ export function ConcentracaoRendaChart({ data }) {
               labelFormatter={(v, p) => {
                 const d = p?.[0]?.payload;
                 return d?.municipio
-                  ? `${d.municipio} · PIB per capita R$ ${(d.pibpc || 0).toLocaleString("pt-BR")}`
+                  ? `${d.municipio} · PIB per capita R$ ${(d.pibpc || 0).toLocaleString("pt-BR")} · Índice: ${d.indiceLocal.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`
                   : `${v}% da população`;
               }}
             />
