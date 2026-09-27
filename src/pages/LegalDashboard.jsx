@@ -12,6 +12,7 @@ import { GratuidadeSegmentadaChart } from "@/components/dashboard/GratuidadeSegm
 import { SegmentacaoResumo } from "@/components/dashboard/SegmentacaoResumo";
 import { ComparativoRitoCard } from "@/components/dashboard/ComparativoRitoCard";
 import { DEFAULT_TRIBUNALS } from "@/lib/tribunals";
+import { ConcentracaoRendaChart } from "@/components/dashboard/ConcentracaoRendaChart";
 
 export default function LegalDashboard() {
   const [tribunals, setTribunals] = useState(DEFAULT_TRIBUNALS);
@@ -22,6 +23,7 @@ export default function LegalDashboard() {
   const [segmentacao, setSegmentacao] = useState([]);
   const [porRito, setPorRito] = useState({ je: null, comum: null });
   const [meta, setMeta] = useState({ ok: [], falhas: [] });
+  const [concentracao, setConcentracao] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,14 +31,16 @@ export default function LegalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [volRes, jgRes, trRes, segRes, trJeRes, trG1Res] = await Promise.all([
+      const [volRes, jgRes, trRes, segRes, trJeRes, trG1Res, concRes] = await Promise.all([
         base44.functions.invoke("fetchAviationVolume", { tribunals: ts }),
         base44.functions.invoke("fetchJusticeGratuita", { tribunals: ts }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts }),
         base44.functions.invoke("fetchSegmentacaoJustica", { tribunals: ts }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, rito: "JE" }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts, rito: "COMUM" }),
+        base44.functions.invoke("fetchConcentracaoRenda", { tribunals: ts }),
       ]);
+      setConcentracao(concRes.data);
       setSegmentacao(segRes.data?.serie || []);
       setPorRito({ je: trJeRes.data, comum: trG1Res.data });
       setVolume(volRes.data?.serie || []);
@@ -206,6 +210,14 @@ export default function LegalDashboard() {
               </div>
             </section>
 
+            {/* Concentração por renda municipal */}
+            <section className="mt-10 space-y-4">
+              <h2 className="font-heading text-xl font-semibold tracking-tight">
+                Litigância × renda municipal
+              </h2>
+              <ConcentracaoRendaChart data={concentracao} />
+            </section>
+
             {/* Rodapé metodológico */}
             <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
               <p>
@@ -251,6 +263,20 @@ export default function LegalDashboard() {
                 atribuído ao Juizado nem à Justiça Comum, evitando inflar a distribuição de
                 qualquer dos ritos com uma classificação por mera inferência de grau. Também é
                 excluído do comparativo de tramitação e resultado por rito.
+              </p>
+              <p>
+                Índice de concentração (Gini adaptado, sem dados de renda dos autores): municípios
+                ordenados pelo PIB per capita (PIB dos Municípios 2023 / população do Censo 2022,
+                IBGE-SIDRA); área entre a curva e a diagonal, calculada por trapézio. Valor positivo
+                indica concentração nos municípios mais ricos. Contam apenas ações originárias
+                (graus JE e G1), sem cumprimento de sentença, atribuídas ao município da vara
+                (<code className="rounded bg-muted px-1 py-0.5">orgaoJulgador.codigoMunicipioIBGE</code>).
+                Universo: todos os municípios das UFs dos TJs consultados, inclusive os sem ações.
+                Quando o município não é informado (sobretudo no TJSP), ele é recuperado pelo nome
+                da vara; foros regionais da Capital são atribuídos a São Paulo, e o foro de Vila
+                Mimosa, a Campinas. Varas sem localidade no nome (ex.: CEJUSC pré-processual) ficam
+                de fora. Limitação: a comarca pode abranger vários municípios, e a ação é atribuída
+                à sede da vara.
               </p>
               <p>
                 Cobertura: 22 tribunais (TJs e TRFs), incluindo o TJDFT (índice
