@@ -13,6 +13,8 @@ import { SegmentacaoResumo } from "@/components/dashboard/SegmentacaoResumo";
 import { ComparativoRitoCard } from "@/components/dashboard/ComparativoRitoCard";
 import { DEFAULT_TRIBUNALS } from "@/lib/tribunals";
 import { ConcentracaoRendaChart } from "@/components/dashboard/ConcentracaoRendaChart";
+import { AnalysisCarousel } from "@/components/dashboard/AnalysisCarousel";
+import { notaVolume, notaGratuidade, notaTramitacao, notaRito, notaConcentracao } from "@/components/dashboard/notasMetodologicas";
 
 export default function LegalDashboard() {
   const [tribunals, setTribunals] = useState(DEFAULT_TRIBUNALS);
@@ -178,106 +180,38 @@ export default function LegalDashboard() {
               />
             </section>
 
-            {/* Gráficos */}
-            <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <VolumeChart data={volume} />
-              <JusticeGratuitaChart data={jusG} />
-            </section>
+            <AnalysisCarousel slides={[
+              { titulo: "Volume de ações", conteudo: <VolumeChart data={volume} />, nota: notaVolume },
+              { titulo: "Justiça gratuita", conteudo: <JusticeGratuitaChart data={jusG} />, nota: notaGratuidade },
+              {
+                titulo: "Tramitação e resultado",
+                conteudo: (
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <TramitacaoCard tramitacao={tramitacao} />
+                    <ResultadoCard resultado={resultado} />
+                  </div>
+                ),
+                nota: notaTramitacao,
+              },
+              {
+                titulo: "Juizado Especial × Justiça Comum",
+                conteudo: (
+                  <div className="space-y-4">
+                    <SegmentacaoResumo data={segmentacao} />
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      <GratuidadeSegmentadaChart data={segmentacao} />
+                      <ComparativoRitoCard je={porRito.je} comum={porRito.comum} />
+                    </div>
+                  </div>
+                ),
+                nota: notaRito,
+              },
+              { titulo: "Litigância × renda municipal", conteudo: <ConcentracaoRendaChart data={concentracao} />, nota: notaConcentracao },
+            ]} />
 
-            {/* Eficiência processual e desfecho do julgamento */}
-            <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <TramitacaoCard tramitacao={tramitacao} />
-              <ResultadoCard resultado={resultado} />
-            </section>
-
-            {/* Recorte Juizado Especial × Justiça Comum */}
-            <section className="mt-10 space-y-4">
-              <div>
-                <h2 className="font-heading text-xl font-semibold tracking-tight">
-                  Juizado Especial × Justiça Comum
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-                  No JE a gratuidade é estrutural (Lei 9.099/95, art. 54) e não gera
-                  movimento de deferimento; na Justiça Comum ela é um benefício real,
-                  concedido caso a caso. Rito identificado pela classe processual,
-                  incluindo as fases recursais de cada justiça.
-                </p>
-              </div>
-              <SegmentacaoResumo data={segmentacao} />
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <GratuidadeSegmentadaChart data={segmentacao} />
-                <ComparativoRitoCard je={porRito.je} comum={porRito.comum} />
-              </div>
-            </section>
-
-            {/* Concentração por renda municipal */}
-            <section className="mt-10 space-y-4">
-              <h2 className="font-heading text-xl font-semibold tracking-tight">
-                Litigância × renda municipal
-              </h2>
-              <ConcentracaoRendaChart data={concentracao} />
-            </section>
-
-            {/* Rodapé metodológico */}
+            {/* Rodapé: fonte e cobertura */}
             <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
-              <p>
-                Fonte: API Pública do DataJud (CNJ). Estratégia de extração: agregações
-                <code className="mx-1 rounded bg-muted px-1 py-0.5">terms</code> com
-                script de normalização sobre <code className="rounded bg-muted px-1 py-0.5">dataAjuizamento</code>,
-                evitando o limite de 10k hits da paginação.
-              </p>
-              <p>
-                Critério de litigância aérea: assuntos "Atraso de vôo", "Cancelamento de vôo"
-                e "Extravio de bagagem" (filtro por nome, estável nacionalmente).
-              </p>
-              <p>
-                Justiça gratuita — dois critérios: (1) por assunto "Assistência Judiciária
-                Gratuita" (TPU 10685); (2) por movimento de concessão "Gratuidade da Justiça"
-                (mais fidedigno do deferimento efetivo). A divergência entre ambos evidencia
-                o sub-registro da matéria como assunto.
-              </p>
-              <p>
-                Tempo de tramitação: diferença em dias entre o último movimento
-                processual e a <code className="rounded bg-muted px-1 py-0.5">dataAjuizamento</code>,
-                restrita a registros com data válida. Resultado do julgamento: varredura
-                dos movimentos do TPU de Magistratura (procedência, improcedência,
-                procedência em parte, extinção sem resolução do mérito e transação).
-              </p>
-              <p>
-                Tipo de justiça: definido pela <code className="rounded bg-muted px-1 py-0.5">classe</code> processual,
-                que acompanha a natureza do processo em todas as instâncias. Juizado Especial:
-                "Procedimento do Juizado Especial Cível", "Recurso Inominado" e demais classes
-                próprias do microssistema; Justiça Comum: "Procedimento Comum Cível", "Apelação
-                Cível" e congêneres. Desempate para as demais classes genéricas (embargos,
-                petições): pelo <code className="rounded bg-muted px-1 py-0.5">grau</code> —
-                JE e turmas recursais (TR/TRU/TNU) para o Juizado; G1, G2 e demais para a Justiça
-                Comum. O recorte cobre o mesmo universo do gráfico de volume, de modo que JE +
-                Justiça Comum + cumprimento de sentença = total de ações aéreas.
-              </p>
-              <p>
-                Cumprimento de sentença: individualizado em categoria própria. No DataJud, ao
-                iniciar a execução do julgado o processo passa a ser registrado com a classe
-                "Cumprimento de sentença" (ou "Cumprimento Provisório de Sentença/Decisão"),
-                perdendo a classe original que indicaria o rito. Esse registro não representa
-                nova demanda, mas a fase executiva de uma ação já ajuizada; por isso não é
-                atribuído ao Juizado nem à Justiça Comum, evitando inflar a distribuição de
-                qualquer dos ritos com uma classificação por mera inferência de grau. Também é
-                excluído do comparativo de tramitação e resultado por rito.
-              </p>
-              <p>
-                Índice de concentração (Gini adaptado, sem dados de renda dos autores): municípios
-                ordenados pelo PIB per capita (PIB dos Municípios 2023 / população do Censo 2022,
-                IBGE-SIDRA); área entre a curva e a diagonal, calculada por trapézio. Valor positivo
-                indica concentração nos municípios mais ricos. Contam apenas ações originárias
-                (graus JE e G1), sem cumprimento de sentença, atribuídas ao município da vara
-                (<code className="rounded bg-muted px-1 py-0.5">orgaoJulgador.codigoMunicipioIBGE</code>).
-                Universo: todos os municípios das UFs dos TJs consultados, inclusive os sem ações.
-                Quando o município não é informado (sobretudo no TJSP), ele é recuperado pelo nome
-                da vara; foros regionais da Capital são atribuídos a São Paulo, e o foro de Vila
-                Mimosa, a Campinas. Varas sem localidade no nome (ex.: CEJUSC pré-processual) ficam
-                de fora. Limitação: a comarca pode abranger vários municípios, e a ação é atribuída
-                à sede da vara.
-              </p>
+              <p>Fonte: API Pública do DataJud (CNJ).</p>
               <p>
                 Cobertura: 22 tribunais (TJs e TRFs), incluindo o TJDFT (índice
                 <code className="mx-1 rounded bg-muted px-1 py-0.5">api_publica_tjdft</code>).
