@@ -35,8 +35,8 @@ export function ConcentracaoRendaChart({ data }) {
               labelFormatter={(v, p) => `${v}% da população · PIB per capita até R$ ${(p?.[0]?.payload?.pibpc || 0).toLocaleString("pt-BR")}`}
             />
             <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 12 }} />
-            <Line dataKey="igualdade" name="Igualdade" stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" dot={false} />
-            <Line dataKey="casos" name="Ações aéreas" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
+            <Line dataKey="igualdade" name="Igualdade" stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+            <Line dataKey="casos" name="Ações aéreas" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
