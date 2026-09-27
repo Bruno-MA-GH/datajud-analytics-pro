@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
+import { MunicipioHover } from "@/components/dashboard/MunicipioHover";
 
 export function ConcentracaoRendaChart({ data }) {
-  const curva = (data?.curva || []).map((p) => ({ ...p, igualdade: p.pop }));
+  const [ponto, setPonto] = useState(null);
+  const curva = useMemo(() => (data?.curva || []).map((p) => ({ ...p, igualdade: p.pop })), [data]);
   const indice = data?.indice ?? 0;
   const c = data?.cobertura;
   return (
@@ -23,16 +25,26 @@ export function ConcentracaoRendaChart({ data }) {
           <div className="font-heading text-3xl font-semibold">{indice.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div>
         </div>
       </div>
-      <div className="mt-4 h-80">
+      <div className="mt-4">
+        <MunicipioHover ponto={ponto} />
+      </div>
+      <div className="mt-2 h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={curva} margin={{ top: 5, right: 10, bottom: 20, left: 0 }}>
+          <LineChart data={curva} margin={{ top: 5, right: 10, bottom: 20, left: 0 }}
+            onMouseMove={(s) => { const p = s?.activePayload?.[0]?.payload; if (p && p !== ponto) setPonto(p); }}
+            onMouseLeave={() => setPonto(null)}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
             <XAxis dataKey="pop" type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={11}
               label={{ value: "População acumulada (menor → maior PIB per capita)", position: "insideBottom", offset: -10, fontSize: 11 }} />
             <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={11} />
             <Tooltip
               formatter={(v, n) => [`${Number(v).toLocaleString("pt-BR")}%`, n]}
-              labelFormatter={(v, p) => `${v}% da população · PIB per capita até R$ ${(p?.[0]?.payload?.pibpc || 0).toLocaleString("pt-BR")}`}
+              labelFormatter={(v, p) => {
+                const d = p?.[0]?.payload;
+                return d?.municipio
+                  ? `${d.municipio} · PIB per capita R$ ${(d.pibpc || 0).toLocaleString("pt-BR")}`
+                  : `${v}% da população`;
+              }}
             />
             <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 12 }} />
             <Line dataKey="igualdade" name="Igualdade" stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" dot={false} isAnimationActive={false} />

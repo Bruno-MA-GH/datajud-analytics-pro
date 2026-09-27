@@ -176,16 +176,16 @@ export default async function (req) {
     // Curva de concentração + índice (regra do trapézio).
     let x = 0, y = 0, soma = 0;
     const curva = [{ pop: 0, casos: 0 }];
-    let proxMarco = 1;
     for (const m of universo) {
       const nx = x + m.pop / popTotal;
       const ny = y + m.casos / casosTotal;
       soma += (nx - x) * (ny + y);
       x = nx; y = ny;
-      if (x * 100 >= proxMarco || m === universo[universo.length - 1]) {
-        curva.push({ pop: +(x * 100).toFixed(2), casos: +(y * 100).toFixed(2), pibpc: Math.round(m.pibpc) });
-        proxMarco = Math.floor(x * 100) + 1;
-      }
+      // Um ponto por município, para identificação no gráfico.
+      curva.push({
+        pop: +(x * 100).toFixed(3), casos: +(y * 100).toFixed(3), pibpc: Math.round(m.pibpc),
+        municipio: m.nome, habitantes: m.pop, acoes: m.casos,
+      });
     }
     const indice = 1 - soma;
 
