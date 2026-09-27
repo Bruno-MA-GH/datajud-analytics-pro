@@ -108,6 +108,11 @@ export const queryDataPossivel = () => ({
     "return doc['dataAjuizamento'].size()>0 && normData(doc['dataAjuizamento'].value)<0;" } } }] },
 });
 
+// Movimentos que indicam arquivamento ou baixa definitiva do processo.
+export const MOVIMENTOS_BAIXA_NOMES = [
+  "Arquivamento", "Arquivado Definitivamente", "Baixa Definitiva", "Definitivo",
+];
+
 // Duração (dias) entre o ajuizamento e o último movimento, ambas as datas
 // normalizadas — nenhum processo é excluído pelo formato de armazenamento.
 export const SCRIPT_DURACAO_DIAS = PAINLESS_NORMALIZA_DATA +
@@ -266,7 +271,10 @@ const settle = (p) =>
 
 // Consulta todos os tribunais e devolve resultados no formato de
 // Promise.allSettled, na mesma ordem da lista recebida.
-export async function queryTribunais(tribunals, dsl) {
+export async function queryTribunais(tribunals, dslOriginal) {
+  // Todas as análises excluem processos com data de ajuizamento impossível
+  // (erro de cadastro no tribunal de origem).
+  const dsl = { ...dslOriginal, query: { bool: { filter: [dslOriginal.query || { match_all: {} }, queryDataPossivel()] } } };
   const demais = tribunals.filter((t) => !TRIBUNAIS_ISOLADOS.includes(t));
   const isolados = tribunals.filter((t) => TRIBUNAIS_ISOLADOS.includes(t));
   const res = new Map();

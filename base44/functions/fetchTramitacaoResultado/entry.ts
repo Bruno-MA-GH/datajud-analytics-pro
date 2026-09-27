@@ -63,7 +63,6 @@ export default async function (req) {
           filter: [
             { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
             ...grauFiltro,
-            queryDataPossivel(),
           ],
         },
       },

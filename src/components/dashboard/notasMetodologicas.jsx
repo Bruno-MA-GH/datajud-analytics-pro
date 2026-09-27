@@ -4,6 +4,7 @@ const C = ({ children }) => <code className="rounded bg-muted px-1 py-0.5">{chil
 
 export const notaVolume = (
   <>
+    <p>Em todas as análises, são excluídos os processos cuja data de ajuizamento, gravada como dígitos, forma data impossível (ex.: mês 13 ou dia 00), por indicarem erro de cadastro no tribunal de origem.</p>
     <p>Agregações <C>terms</C> com script de normalização sobre <C>dataAjuizamento</C>, evitando o limite de 10k hits da paginação.</p>
     <p>Critério de litigância aérea: assuntos "Atraso de vôo", "Cancelamento de vôo" e "Extravio de bagagem" (filtro por nome, estável nacionalmente).</p>
   </>
@@ -50,6 +51,17 @@ export const notaTema = (
 
 export const notaPredatoria = (
   <p>Índice exploratório (0–100) por tribunal: média simples de dois indicadores normalizados entre o menor e o maior valor dos tribunais consultados, que são o percentual de ações originárias ajuizadas em lote (10 ou mais na mesma vara e no mesmo dia) e a taxa de acordo homologado. É um índice relativo entre os tribunais selecionados: um valor alto indica indícios, não a comprovação de litigância predatória, que exigiria dados de advogados e partes, ausentes na API pública.</p>
+);
+
+export const notaAcesso = (
+  <>
+    <p>Taxa: ações aéreas originárias (graus JE e G1, sem cumprimento de sentença) ajuizadas de 2015 a 2025 no TJ da UF ÷ passageiros pagos no mesmo período × 100 mil. Apenas TJs estaduais, pois os TRFs abrangem várias UFs.</p>
+    <p>Fonte externa: ANAC, "Dados Estatísticos do Transporte Aéreo" (dados abertos, arquivo Dados_Estatisticos.csv, versão de 27/09/2026). Passageiros pagos embarcados e desembarcados nos aeroportos da UF, em voos domésticos e internacionais; um passageiro em trânsito conta na origem e no destino. A ação é atribuída à UF do tribunal, que pode não coincidir com a do voo. Tribunais com baixa cobertura histórica no DataJud têm a taxa subestimada.</p>
+  </>
+);
+
+export const notaParados = (
+  <p>Universo: ações aéreas (todos os graus) sem movimento de arquivamento ou baixa definitiva. Tempo parado: dias entre hoje e o último movimento registrado, com datas normalizadas. "Parados" corresponde às faixas acima de 180 dias. "Sem movimento": processos sem nenhuma data de movimentação. O DataJud reflete a última carga enviada por cada tribunal, então atrasos de envio podem inflar as faixas mais longas. Classes limitadas às 8 principais por tribunal.</p>
 );
 
 export const notaConcentracao = (

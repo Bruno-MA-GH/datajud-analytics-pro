@@ -14,7 +14,10 @@ import { ComparativoRitoCard } from "@/components/dashboard/ComparativoRitoCard"
 import { DEFAULT_TRIBUNALS } from "@/lib/tribunals";
 import { ConcentracaoRendaChart } from "@/components/dashboard/ConcentracaoRendaChart";
 import { AnalysisCarousel } from "@/components/dashboard/AnalysisCarousel";
-import { notaVolume, notaGratuidade, notaTramitacao, notaRito, notaConcentracao, notaLotes, notaIncentivos, notaTipoDano, notaTema, notaPredatoria } from "@/components/dashboard/notasMetodologicas";
+import { notaVolume, notaGratuidade, notaTramitacao, notaRito, notaConcentracao, notaLotes, notaIncentivos, notaTipoDano, notaTema, notaPredatoria, notaAcesso, notaParados } from "@/components/dashboard/notasMetodologicas";
+import { AcessoPassageirosChart } from "@/components/dashboard/AcessoPassageirosChart";
+import { AcessoPassageirosSerie } from "@/components/dashboard/AcessoPassageirosSerie";
+import { ProcessosParadosPerfil } from "@/components/dashboard/ProcessosParadosPerfil";
 import { TemaEventoChart } from "@/components/dashboard/TemaEventoChart";
 import { TemaSuspensosPerfil } from "@/components/dashboard/TemaSuspensosPerfil";
 import { PredatoriaTable } from "@/components/dashboard/PredatoriaTable";
@@ -37,6 +40,8 @@ export default function LegalDashboard() {
   const [incentivos, setIncentivos] = useState(null);
   const [tipoDano, setTipoDano] = useState(null);
   const [tema, setTema] = useState(null);
+  const [acesso, setAcesso] = useState(null);
+  const [parados, setParados] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -44,7 +49,7 @@ export default function LegalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [volRes, jgRes, trRes, segRes, trJeRes, trG1Res, concRes, lotRes, incRes, danoRes, temaRes] = await Promise.all([
+      const [volRes, jgRes, trRes, segRes, trJeRes, trG1Res, concRes, lotRes, incRes, danoRes, temaRes, acessoRes, paradosRes] = await Promise.all([
         base44.functions.invoke("fetchAviationVolume", { tribunals: ts }),
         base44.functions.invoke("fetchJusticeGratuita", { tribunals: ts }),
         base44.functions.invoke("fetchTramitacaoResultado", { tribunals: ts }),
@@ -56,8 +61,12 @@ export default function LegalDashboard() {
         base44.functions.invoke("fetchIncentivosTribunal", { tribunals: ts }),
         base44.functions.invoke("fetchTipoDano", { tribunals: ts }),
         base44.functions.invoke("fetchTema1417", { tribunals: ts }),
+        base44.functions.invoke("fetchAcessoPassageiros", { tribunals: ts }),
+        base44.functions.invoke("fetchProcessosParados", { tribunals: ts }),
       ]);
       setTema(temaRes.data);
+      setAcesso(acessoRes.data);
+      setParados(paradosRes.data);
       setConcentracao(concRes.data);
       setLotes(lotRes.data);
       setIncentivos(incRes.data);
@@ -226,6 +235,17 @@ export default function LegalDashboard() {
                 nota: notaRito,
               },
               { titulo: "Litigância × renda municipal", conteudo: <ConcentracaoRendaChart data={concentracao} />, nota: notaConcentracao },
+              {
+                titulo: "Acesso à justiça × passageiros (ANAC)",
+                conteudo: (
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <AcessoPassageirosChart data={acesso} />
+                    <AcessoPassageirosSerie data={acesso} />
+                  </div>
+                ),
+                nota: notaAcesso,
+              },
+              { titulo: "Processos parados", conteudo: <ProcessosParadosPerfil data={parados} />, nota: notaParados },
               { titulo: "Lotes no mesmo dia", conteudo: <LotesChart data={lotes} />, nota: notaLotes },
               { titulo: "Acordo, execução e baixa", conteudo: <IncentivosTable data={incentivos} />, nota: notaIncentivos },
               { titulo: "Indícios de litigância predatória", conteudo: <PredatoriaTable lotes={lotes} incentivos={incentivos} />, nota: notaPredatoria },

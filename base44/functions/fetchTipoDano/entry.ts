@@ -22,7 +22,6 @@ export default async function (req) {
       size: 0,
       query: { bool: { filter: [
         { terms: { "assuntos.nome.keyword": ASSUNTOS_AEREA_NOMES } },
-        queryDataPossivel(),
       ] } },
       aggs: {
         assunto: {

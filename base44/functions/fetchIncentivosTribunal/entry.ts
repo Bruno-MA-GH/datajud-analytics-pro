@@ -1,15 +1,12 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
-  queryTribunais, queryCumprimento, TRIBUNAIS_DEFAULT, ASSUNTOS_AEREA_NOMES, MOVIMENTOS_ACORDO_NOMES,
+  queryTribunais, queryCumprimento, TRIBUNAIS_DEFAULT, ASSUNTOS_AEREA_NOMES, MOVIMENTOS_ACORDO_NOMES, MOVIMENTOS_BAIXA_NOMES,
 } from "../../shared/datajud.ts";
 
 // =============================================================================
 // Indicadores por tribunal: taxa de acordo, conversão em execução, movimentos
 // por processo e índice de baixa/arquivamento proporcional às distribuições.
 // =============================================================================
-const MOVIMENTOS_BAIXA_NOMES = [
-  "Arquivamento", "Arquivado Definitivamente", "Baixa Definitiva", "Definitivo",
-];
 
 export default async function (req) {
   try {
