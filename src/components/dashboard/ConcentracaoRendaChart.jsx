@@ -3,6 +3,8 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { MunicipioHover } from "@/components/dashboard/MunicipioHover";
+import { ConcentracaoDecis } from "@/components/dashboard/ConcentracaoDecis";
+import { ConcentracaoCobertura } from "@/components/dashboard/ConcentracaoCobertura";
 
 export function ConcentracaoRendaChart({ data }) {
   const [ponto, setPonto] = useState(null);
@@ -64,11 +66,12 @@ export function ConcentracaoRendaChart({ data }) {
       </div>
       {c && (
         <p className="mt-3 text-xs text-muted-foreground">
-          {c.noUniverso.toLocaleString("pt-BR")} ações originárias em {c.municipios.toLocaleString("pt-BR")} municípios
-          ({c.populacao.toLocaleString("pt-BR")} habitantes) · {(c.totalOrigem - c.noUniverso).toLocaleString("pt-BR")} sem
-          município identificável ou fora das UFs consultadas.
+          {c.noUniverso.toLocaleString("pt-BR")} ações ainda sem execução em {c.municipios.toLocaleString("pt-BR")} municípios
+          ({c.populacao.toLocaleString("pt-BR")} habitantes).
         </p>
       )}
+      <ConcentracaoDecis decis={data?.decis} />
+      <ConcentracaoCobertura cobertura={c} recuperacao={data?.recuperacao} />
     </div>
   );
 }

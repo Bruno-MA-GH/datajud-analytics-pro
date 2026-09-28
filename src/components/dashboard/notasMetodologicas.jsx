@@ -31,7 +31,7 @@ export const notaRito = (
 );
 
 export const notaLotes = (
-  <p>Lote: par órgão julgador + dia de <C>dataAjuizamento</C> com 10 ou mais ações aéreas originárias (graus JE e G1). Datas gravadas como dígitos (yyyyMMddHHmmss) são reconstruídas. Lotes indicam protocolo em bloco, mas também podem refletir redistribuição ou migração de sistema em uma data única, o que exige leitura qualitativa dos maiores casos.</p>
+  <p>Lote: par órgão julgador + dia de <C>dataAjuizamento</C> com 10 ou mais ações aéreas ainda sem execução (graus JE e G1, sem cumprimento de sentença). Datas gravadas como dígitos (yyyyMMddHHmmss) são reconstruídas. Lotes indicam protocolo em bloco, mas também podem refletir redistribuição ou migração de sistema em uma data única, o que exige leitura qualitativa dos maiores casos.</p>
 );
 
 export const notaIncentivos = (
@@ -48,7 +48,7 @@ export const notaTipoDano = (
 export const notaTema = (
   <>
     <p>Marco: decisão do Min. Dias Toffoli no ARE 1.560.244/RJ, de 26/11/2025, que suspendeu nacionalmente os processos sobre o Tema 1.417 da Repercussão Geral (regime de responsabilidade por cancelamento, alteração ou atraso de voo: CBA × CDC). A repercussão geral foi reconhecida em 22/8/2025.</p>
-    <p>Estudo de evento: ações aéreas originárias (JE/G1) por mês de ajuizamento. A média "antes" usa nov/2024 a out/2025; a média "depois", dez/2025 em diante. Exceção ao corte geral de 2025: esta análise inclui os ajuizamentos de 2026, necessários para medir o período posterior à suspensão. O mês corrente fica fora das médias, e os meses mais recentes tendem a ser subestimados pelo atraso de envio dos tribunais ao DataJud.</p>
+    <p>Estudo de evento: ações aéreas ainda sem execução (JE/G1) por mês de ajuizamento. A média "antes" usa nov/2024 a out/2025; a média "depois", dez/2025 em diante. Exceção ao corte geral de 2025: esta análise inclui os ajuizamentos de 2026, necessários para medir o período posterior à suspensão. O mês corrente fica fora das médias, e os meses mais recentes tendem a ser subestimados pelo atraso de envio dos tribunais ao DataJud.</p>
     <p>Suspensos (aproximação): processos com movimento "Suspensão ou Sobrestamento", "Sobrestado" ou "Cumprimento de Suspensão ou Sobrestamento" e com alguma movimentação a partir de 26/11/2025. As datas dos movimentos são normalizadas antes da comparação, como nas demais análises. O DataJud não permite vincular a data ao movimento específico, então a contagem pode incluir suspensões anteriores por outros motivos. A suspensão alcança também o extravio de bagagem apenas se o tribunal assim a aplicar.</p>
   </>
 );
@@ -59,7 +59,7 @@ export const notaPredatoria = (
 
 export const notaAcesso = (
   <>
-    <p>Taxa: ações aéreas originárias (graus JE e G1, sem cumprimento de sentença) ajuizadas de 2015 a 2025 no TJ da UF ÷ passageiros pagos no mesmo período × 100 mil. Apenas TJs estaduais, pois os TRFs abrangem várias UFs.</p>
+    <p>Taxa: ações aéreas ainda sem execução (graus JE e G1, sem cumprimento de sentença) ajuizadas de 2015 a 2025 no TJ da UF ÷ passageiros pagos no mesmo período × 100 mil. Apenas TJs estaduais, pois os TRFs abrangem várias UFs.</p>
     <p>Alinhamento temporal: a ANAC publica dados mensais, mas a série usada termina em 2025, último ano completo disponível. Por isso, as ações do DataJud desta análise também são limitadas a 2015–2025, e 2026 fica fora das duas fontes. Assim, numerador e denominador cobrem o mesmo período, sem comparar anos com cobertura diferente. Como os tribunais ainda enviam ao DataJud processos ajuizados em 2025, a taxa desse último ano tende a estar subestimada.</p>
     <p>Fonte externa: ANAC, "Dados Estatísticos do Transporte Aéreo" (dados abertos, arquivo Dados_Estatisticos.csv, versão de 27/09/2026). Passageiros pagos nos aeroportos da UF, em voos domésticos e internacionais, contados uma única vez (como no critério IATA/IBAER): a soma de embarcados e desembarcados é dividida por 2, já que cada viagem aparece na origem e no destino. A divisão é aproximada, porque em voos internacionais só uma das pontas fica no Brasil. A ação é atribuída à UF do tribunal, que pode não coincidir com a do voo. Tribunais com baixa cobertura histórica no DataJud têm a taxa subestimada.</p>
   </>
@@ -72,6 +72,7 @@ export const notaParados = (
 export const notaConcentracao = (
   <>
     <p>Índice de concentração (Gini adaptado, sem dados de renda dos autores): municípios ordenados pelo PIB per capita (PIB dos Municípios 2023 / população do Censo 2022, IBGE-SIDRA); área entre a curva e a diagonal, por trapézio. Valor positivo indica concentração nos municípios mais ricos. No tooltip, o índice é acumulado até o município sob o cursor.</p>
-    <p>Contam apenas ações originárias (graus JE e G1), sem cumprimento de sentença, atribuídas ao município da vara (<C>orgaoJulgador.codigoMunicipioIBGE</C>). Universo: todos os municípios das UFs dos TJs consultados, inclusive os sem ações. Quando o município não é informado (sobretudo no TJSP), é recuperado pelo nome da vara; foros regionais da Capital são atribuídos a São Paulo, e o de Vila Mimosa, a Campinas. Varas sem localidade no nome (ex.: CEJUSC) ficam de fora. Limitação: a comarca pode abranger vários municípios, e a ação é atribuída à sede da vara.</p>
+    <p>Contam apenas ações ainda sem execução (graus JE e G1, sem cumprimento de sentença), atribuídas ao município da vara (<C>orgaoJulgador.codigoMunicipioIBGE</C>). Universo: todos os municípios das UFs dos TJs consultados, inclusive os sem ações. Quando o município não é informado (sobretudo no TJSP), é recuperado pelo nome da vara; foros regionais da Capital são atribuídos a São Paulo, e o de Vila Mimosa, a Campinas. Varas sem localidade no nome (ex.: CEJUSC) ficam de fora. Limitação: a comarca pode abranger vários municípios, e a ação é atribuída à sede da vara.</p>
+    <p>Ações fora da curva, por causa: município sem PIB na base do IBGE (sai do universo, pois não pode ser ordenado), sem município identificável mesmo pelo nome da vara, ou código de município fora das UFs consultadas. A tela mostra cada parcela e, por tribunal, quantas ações sem código foram recuperadas pelo nome da vara. Decis: o universo é dividido em dez faixas de população igual, do menor ao maior PIB per capita, com a taxa de ações por 100 mil habitantes em cada faixa.</p>
   </>
 );

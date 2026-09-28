@@ -54,10 +54,10 @@ export function GratuidadeSegmentadaChart({ data }) {
               formatter={(name) => <span className="text-muted-foreground">{SERIES[name]}</span>}
               wrapperStyle={{ fontSize: 11 }}
             />
-            <Bar dataKey="je" stackId="a" fill="#1e3a5f" />
-            <Bar dataKey="comumGratuidade" stackId="a" fill="#c98a2a" />
-            <Bar dataKey="comumSem" stackId="a" fill="#cbd5e1" />
-            <Bar dataKey="cumprimento" stackId="a" fill="#6b8e7f" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="je" stackId="a" fill="hsl(var(--chart-3))" />
+            <Bar dataKey="comumGratuidade" stackId="a" fill="hsl(var(--chart-4))" />
+            <Bar dataKey="comumSem" stackId="a" fill="hsl(var(--muted-foreground) / 0.35)" />
+            <Bar dataKey="cumprimento" stackId="a" fill="hsl(var(--chart-2))" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

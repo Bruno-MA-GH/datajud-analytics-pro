@@ -23,7 +23,16 @@ export function TemaSuspensosPerfil({ data }) {
           ))}
         </TableBody>
       </Table>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+      <div className="mt-3 text-xs font-medium">Por grau</div>
+      <div className="mt-1 flex flex-wrap gap-2 text-xs">
+        {Object.entries(p.graus || {}).sort((a, b) => b[1] - a[1]).map(([g, v]) => (
+          <span key={g} className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+            {g}: <b className="text-foreground">{fmt(v)}</b> ({pct(v, p.total)})
+          </span>
+        ))}
+      </div>
+      <div className="mt-3 text-xs font-medium">Por tribunal</div>
+      <div className="mt-1 flex flex-wrap gap-2 text-xs">
         {(data?.porTribunal || []).filter((t) => t.suspensos).map((t) => (
           <span key={t.tribunal} className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
             {t.tribunal.toUpperCase()}: <b className="text-foreground">{fmt(t.suspensos)}</b>

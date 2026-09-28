@@ -169,6 +169,11 @@ export default async function (req) {
       .map((m) => ({ ...m, pibpc: m.pib / m.pop }))
       .sort((a, b) => a.pibpc - b.pibpc);
     const casosForaUF = [...mun.values()].filter((m) => !ufs.has(m.uf)).reduce((s, m) => s + m.casos, 0);
+    // Municípios das UFs consultadas sem PIB na base do IBGE: saem do universo.
+    const semPibMun = [...mun.values()].filter((m) => ufs.has(m.uf) && !m.pib);
+    const casosSemPib = semPibMun.reduce((s, m) => s + m.casos, 0);
+    const semMunicipio = recuperacao.reduce((s, r) => s + r.naoRecuperadosTotal, 0);
+    const recuperados = recuperacao.reduce((s, r) => s + r.recuperados, 0);
 
     const popTotal = universo.reduce((s, m) => s + m.pop, 0);
     const casosTotal = universo.reduce((s, m) => s + m.casos, 0);
@@ -207,6 +212,10 @@ export default async function (req) {
         totalOrigem,
         noUniverso: casosTotal,
         foraDoUniverso: foraDoUniverso + casosForaUF,
+        semPib: casosSemPib,
+        municipiosSemPib: semPibMun.filter((m) => m.casos).map((m) => ({ nome: m.nome, acoes: m.casos })),
+        semMunicipio,
+        recuperados,
         municipios: universo.length,
         populacao: popTotal,
         ufs: [...ufs],
