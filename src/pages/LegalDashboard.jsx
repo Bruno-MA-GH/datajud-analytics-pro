@@ -275,7 +275,15 @@ export default function LegalDashboard() {
             <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
               <p>Fonte: API Pública do DataJud (CNJ).</p>
               <p>
-                Cobertura: 22 tribunais (TJs e TRFs), incluindo o TJDFT (índice
+                Nota metodológica geral: todas as análises cobrem ajuizamentos até 31/12/2025; 2026, ano
+                incompleto, fica de fora (exceto no estudo de evento do Tema 1.417, que depende dos meses
+                após a suspensão). O DataJud reflete a última carga enviada por cada tribunal, e os envios
+                ocorrem com atraso variável: os períodos mais recentes tendem a estar subestimados em todas
+                as análises. Apenas Tribunais de Justiça estaduais são consultados; os TRFs ficam fora do
+                escopo, pois a litigância aérea contra companhias é de competência da Justiça Estadual.
+              </p>
+              <p>
+                Cobertura: Tribunais de Justiça estaduais, incluindo o TJDFT (índice
                 <code className="mx-1 rounded bg-muted px-1 py-0.5">api_publica_tjdft</code>).
                 O TJRS, de índice mais pesado, é consultado à parte após os demais, com nova
                 tentativa em caso de falha, para garantir sua inclusão em todas as cargas.

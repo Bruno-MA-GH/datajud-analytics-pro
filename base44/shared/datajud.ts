@@ -103,9 +103,13 @@ export const PAINLESS_NORMALIZA_DATA =
 
 // Exclui processos cuja dataAjuizamento em dígitos forma data impossível
 // (ex.: mês 13, dia 00) — erro de cadastro no tribunal de origem.
-export const queryDataPossivel = () => ({
-  bool: { must_not: [{ script: { script: { source: PAINLESS_NORMALIZA_DATA +
-    "return doc['dataAjuizamento'].size()>0 && normData(doc['dataAjuizamento'].value)<0;" } } }] },
+// Também exclui ajuizamentos a partir de 2026 (ano incompleto), salvo quando
+// a análise precisa do período posterior (ex.: estudo de evento do Tema 1.417).
+export const ANO_FINAL = 2025;
+const LIMITE_ANO_FINAL = Date.UTC(ANO_FINAL + 1, 0, 1);
+export const queryDataPossivel = (lim = LIMITE_ANO_FINAL) => ({
+  bool: { must_not: [{ script: { script: { params: { lim }, source: PAINLESS_NORMALIZA_DATA +
+    "if(doc['dataAjuizamento'].size()==0) return false; long n=normData(doc['dataAjuizamento'].value); return n<0 || n>=params.lim;" } } }] },
 });
 
 // Movimentos que indicam arquivamento ou baixa definitiva do processo.
@@ -193,11 +197,10 @@ export function queryRitoJE() {
   };
 }
 
-// Tribunais consultados por padrão (principais TJ estaduais + TRF).
+// Tribunais consultados por padrão: apenas TJs estaduais (TRFs fora do escopo).
 export const TRIBUNAIS_DEFAULT = [
   "tjsp", "tjrj", "tjmg", "tjrs", "tjpr", "tjba", "tjce", "tjpe",
   "tjsc", "tjgo", "tjdft", "tjes", "tjmt", "tjms", "tjpa", "tjam",
-  "trf1", "trf2", "trf3", "trf4", "trf5", "trf6",
 ];
 
 // ---------------------------------------------------------------------------
@@ -271,10 +274,11 @@ const settle = (p) =>
 
 // Consulta todos os tribunais e devolve resultados no formato de
 // Promise.allSettled, na mesma ordem da lista recebida.
-export async function queryTribunais(tribunals, dslOriginal) {
+export async function queryTribunais(tribunals, dslOriginal, { incluirPosAnoFinal = false } = {}) {
   // Todas as análises excluem processos com data de ajuizamento impossível
-  // (erro de cadastro no tribunal de origem).
-  const dsl = { ...dslOriginal, query: { bool: { filter: [dslOriginal.query || { match_all: {} }, queryDataPossivel()] } } };
+  // (erro de cadastro no tribunal de origem) e, salvo exceção, os de 2026.
+  const filtroData = incluirPosAnoFinal ? queryDataPossivel(Number.MAX_SAFE_INTEGER) : queryDataPossivel();
+  const dsl = { ...dslOriginal, query: { bool: { filter: [dslOriginal.query || { match_all: {} }, filtroData] } } };
   const demais = tribunals.filter((t) => !TRIBUNAIS_ISOLADOS.includes(t));
   const isolados = tribunals.filter((t) => TRIBUNAIS_ISOLADOS.includes(t));
   const res = new Map();

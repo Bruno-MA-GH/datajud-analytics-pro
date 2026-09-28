@@ -18,12 +18,6 @@ export const TRIBUNAL_OPTIONS = [
   { value: "tjms", label: "TJMS · Mato Grosso do Sul" },
   { value: "tjpa", label: "TJPA · Pará" },
   { value: "tjam", label: "TJAM · Amazonas" },
-  { value: "trf1", label: "TRF1 · 1ª Região" },
-  { value: "trf2", label: "TRF2 · 2ª Região" },
-  { value: "trf3", label: "TRF3 · 3ª Região" },
-  { value: "trf4", label: "TRF4 · 4ª Região" },
-  { value: "trf5", label: "TRF5 · 5ª Região" },
-  { value: "trf6", label: "TRF6 · 6ª Região" },
 ];
 
 export const DEFAULT_TRIBUNALS = TRIBUNAL_OPTIONS.map((t) => t.value);

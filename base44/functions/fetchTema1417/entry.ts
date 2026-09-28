@@ -46,7 +46,8 @@ export default async function (req) {
         },
       },
     };
-    const results = await queryTribunais(tribunals, dsl);
+    // Exceção ao corte de 2025: o estudo de evento depende dos meses após a suspensão.
+    const results = await queryTribunais(tribunals, dsl, { incluirPosAnoFinal: true });
 
     const now = new Date();
     const limite = now.getFullYear() * 100 + now.getMonth() + 1;
