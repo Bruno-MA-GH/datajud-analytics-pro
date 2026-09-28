@@ -16,7 +16,10 @@ export const notaGratuidade = (
 );
 
 export const notaTramitacao = (
-  <p>Tempo de tramitação: diferença em dias entre o último movimento processual e a <C>dataAjuizamento</C>. Todas as datas são reconstruídas antes do cálculo: as gravadas como dígitos "yyyyMMddHHmmss" são decompostas e remontadas, de modo que nenhum processo é excluído pelo formato de armazenamento. Exceção: processos cujos dígitos formam data impossível (ex.: mês 13 ou dia 00) são excluídos, por indicarem erro de cadastro no tribunal de origem. A duração considera apenas processos já arquivados ou com baixa definitiva, pois nos processos em curso o último movimento não marca o fim da tramitação. Resultado do julgamento: movimentos do TPU de Magistratura, com desfecho único por processo segundo hierarquia fixa: acordo, procedência em parte, procedência, improcedência e extinção sem resolução do mérito. Um processo com mais de um desses movimentos (ex.: sentença reformada em recurso) conta apenas na categoria mais alta, e os percentuais somam 100%.</p>
+  <>
+  <p>Tempo de tramitação: diferença em dias entre o último movimento processual e a <C>dataAjuizamento</C>. Todas as datas são reconstruídas antes do cálculo: as gravadas como dígitos "yyyyMMddHHmmss" são decompostas e remontadas, de modo que nenhum processo é excluído pelo formato de armazenamento. Exceção: processos cujos dígitos formam data impossível (ex.: mês 13 ou dia 00) são excluídos, por indicarem erro de cadastro no tribunal de origem. A duração considera apenas processos já arquivados ou com baixa definitiva, pois nos processos em curso o último movimento não marca o fim da tramitação. Resultado do julgamento: movimentos do TPU de Magistratura (procedência, improcedência, procedência em parte, extinção sem resolução do mérito e transação), contados por categoria. Um processo com mais de um desses movimentos conta em cada uma delas, então os percentuais medem a frequência dos desfechos registrados, e não a proporção de processos.</p>
+  <p>A repetição foi mantida de propósito. O DataJud não informa a data de cada movimento, então não dá para saber qual desfecho foi o último. Atribuir cada processo a uma única categoria exigiria uma hierarquia arbitrária (ex.: acordo acima de procedência). Isso apagaria, por exemplo, a improcedência reformada em recurso, e o resultado dependeria mais da regra escolhida do que dos dados. A contagem por movimento preserva tudo o que foi registrado, mas os percentuais não somam processos distintos.</p>
+  </>
 );
 
 export const notaRito = (
@@ -33,7 +36,7 @@ export const notaLotes = (
 
 export const notaIncentivos = (
   <>
-    <p>Taxa de acordo: processos com movimento de homologação de transação ÷ ações de conhecimento. Conversão em execução: registros na classe "Cumprimento de sentença" ÷ ações de conhecimento; indica se o réu precisou ser executado em vez de pagar espontaneamente.</p>
+    <p>Taxa de acordo: ações de conhecimento com movimento de homologação de transação ÷ ações de conhecimento (numerador e denominador no mesmo universo, sem cumprimento de sentença). Conversão em execução: registros na classe "Cumprimento de sentença" ÷ ações de conhecimento; indica se o réu precisou ser executado em vez de pagar espontaneamente.</p>
     <p>Movimentos por processo: total de movimentos registrados ÷ processos, como aproximação do esforço processual. Índice de baixa: processos com movimento de arquivamento ou baixa definitiva ÷ total distribuído no tribunal, uma medida de vazão proporcional ao volume.</p>
   </>
 );
@@ -46,7 +49,7 @@ export const notaTema = (
   <>
     <p>Marco: decisão do Min. Dias Toffoli no ARE 1.560.244/RJ, de 26/11/2025, que suspendeu nacionalmente os processos sobre o Tema 1.417 da Repercussão Geral (regime de responsabilidade por cancelamento, alteração ou atraso de voo: CBA × CDC). A repercussão geral foi reconhecida em 22/8/2025.</p>
     <p>Estudo de evento: ações aéreas originárias (JE/G1) por mês de ajuizamento. A média "antes" usa nov/2024 a out/2025; a média "depois", dez/2025 em diante. Exceção ao corte geral de 2025: esta análise inclui os ajuizamentos de 2026, necessários para medir o período posterior à suspensão. O mês corrente fica fora das médias, e os meses mais recentes tendem a ser subestimados pelo atraso de envio dos tribunais ao DataJud.</p>
-    <p>Suspensos (aproximação): processos com movimento "Suspensão ou Sobrestamento", "Sobrestado" ou "Cumprimento de Suspensão ou Sobrestamento" e com alguma movimentação a partir de 26/11/2025. O DataJud não permite vincular a data ao movimento específico, então a contagem pode incluir suspensões anteriores por outros motivos. A suspensão alcança também o extravio de bagagem apenas se o tribunal assim a aplicar.</p>
+    <p>Suspensos (aproximação): processos com movimento "Suspensão ou Sobrestamento", "Sobrestado" ou "Cumprimento de Suspensão ou Sobrestamento" e com alguma movimentação a partir de 26/11/2025. As datas dos movimentos são normalizadas antes da comparação, como nas demais análises. O DataJud não permite vincular a data ao movimento específico, então a contagem pode incluir suspensões anteriores por outros motivos. A suspensão alcança também o extravio de bagagem apenas se o tribunal assim a aplicar.</p>
   </>
 );
 

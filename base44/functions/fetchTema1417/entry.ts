@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   queryTribunais, TRIBUNAIS_DEFAULT, ASSUNTOS_AEREA_NOMES, GRAUS_ORIGEM, SCRIPT_DATA_AJUIZAMENTO_YYYYMM,
-  toYearMonth, queryRitoJE, queryCumprimento,
+  toYearMonth, queryRitoJE, queryCumprimento, PAINLESS_NORMALIZA_DATA,
 } from "../../shared/datajud.ts";
 
 // =============================================================================
@@ -36,11 +36,14 @@ export default async function (req) {
         suspensos: {
           filter: { bool: { filter: [
             { terms: { "movimentos.nome.keyword": MOV_SUSPENSAO } },
-            { range: { "movimentos.dataHora": { gte: DATA_SUSPENSAO } } },
+            // Datas de movimento normalizadas (evita que datas em dígitos, lidas como ano > 2100, passem no filtro).
+            { script: { script: { params: { lim: Date.UTC(2025, 10, 26) }, source: PAINLESS_NORMALIZA_DATA +
+              "for(d in doc['movimentos.dataHora']){ if(normData(d)>=params.lim) return true; } return false;" } } },
           ] } },
           aggs: {
             rito: { filters: { filters: { je: queryRitoJE(), cumprimento: queryCumprimento() } } },
-            assunto: { terms: { field: "assuntos.nome.keyword", include: ASSUNTOS_AEREA_NOMES, size: 10 } },
+            // Só os três tipos de dano do perfil (os demais assuntos aéreos não têm categoria aqui).
+            assunto: { terms: { field: "assuntos.nome.keyword", include: ASSUNTOS_AEREA_NOMES.filter((n) => /^(Atraso|Cancelamento|Extravio)/.test(n)), size: 10 } },
             grau: { terms: { field: "grau.keyword", size: 10 } },
           },
         },

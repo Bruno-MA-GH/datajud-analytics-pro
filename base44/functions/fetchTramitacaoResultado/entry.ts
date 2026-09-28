@@ -35,21 +35,7 @@ import {
 //     o RESULTADO REAL observado na base.
 // =============================================================================
 
-// Hierarquia fixa de desfechos: cada processo conta em uma só categoria, a mais
-// alta que possuir (acordo > parcial > procedência > improcedência > sem mérito).
-const HIERARQUIA = [
-  ["acordo", MOVIMENTOS_ACORDO_NOMES],
-  ["parcial", MOVIMENTOS_PARCIAL_NOMES],
-  ["procedencia", MOVIMENTOS_PROCEDENCIA_NOMES],
-  ["improcedencia", MOVIMENTOS_IMPROCEDENCIA_NOMES],
-  ["sem_merito", MOVIMENTOS_SEM_MERITO_NOMES],
-];
 const termoMov = (nomes) => ({ terms: { "movimentos.nome.keyword": nomes } });
-function desfechosUnicos() {
-  return Object.fromEntries(HIERARQUIA.map(([k, nomes], i) => [k, {
-    filter: { bool: { filter: [termoMov(nomes)], must_not: HIERARQUIA.slice(0, i).map(([, n]) => termoMov(n)) } },
-  }]));
-}
 
 export default async function (req) {
   try {
@@ -94,8 +80,12 @@ export default async function (req) {
             },
           },
         },
-        // (2) Resultado: desfecho único por processo, pela hierarquia fixa.
-        ...desfechosUnicos(),
+        // (2) Resultado: contagem por movimento (um processo pode contar em mais de uma categoria).
+        procedencia: { filter: termoMov(MOVIMENTOS_PROCEDENCIA_NOMES) },
+        improcedencia: { filter: termoMov(MOVIMENTOS_IMPROCEDENCIA_NOMES) },
+        parcial: { filter: termoMov(MOVIMENTOS_PARCIAL_NOMES) },
+        sem_merito: { filter: termoMov(MOVIMENTOS_SEM_MERITO_NOMES) },
+        acordo: { filter: termoMov(MOVIMENTOS_ACORDO_NOMES) },
       },
     };
 

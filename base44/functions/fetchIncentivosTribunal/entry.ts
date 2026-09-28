@@ -24,7 +24,11 @@ export default async function (req) {
       ] } },
       aggs: {
         cumprimento: { filter: queryCumprimento() },
-        acordo: { filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_ACORDO_NOMES } } },
+        // Numerador restrito às ações de conhecimento, o mesmo universo do denominador.
+        acordo: { filter: { bool: {
+          filter: [{ terms: { "movimentos.nome.keyword": MOVIMENTOS_ACORDO_NOMES } }],
+          must_not: [queryCumprimento()],
+        } } },
         baixa: { filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_BAIXA_NOMES } } },
         movimentos: { value_count: { field: "movimentos.dataHora" } },
       },
