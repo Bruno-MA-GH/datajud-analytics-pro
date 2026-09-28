@@ -11,7 +11,7 @@ export function AcessoPassageirosChart({ data }) {
     <div className="rounded-xl border border-border/70 bg-card p-5">
       <h3 className="font-heading text-base font-semibold">Ações por 100 mil passageiros, por UF</h3>
       <p className="text-xs text-muted-foreground mt-1">
-        Ações originárias (JE/G1) de {ini} a {fim} ÷ passageiros pagos embarcados e desembarcados na UF no mesmo período (ANAC).
+        Ações originárias (JE/G1) de {ini} a {fim} ÷ passageiros pagos da UF no mesmo período, contados uma única vez (ANAC).
       </p>
       <div className="mt-4 h-80">
         <ResponsiveContainer width="100%" height="100%">

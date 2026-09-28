@@ -37,7 +37,8 @@ export default async function (req) {
       const t = tribunals[i];
       if (r.status !== "fulfilled") { falhas.push({ tribunal: t, erro: r.reason?.message || String(r.reason) }); return; }
       const uf = ufDe(t);
-      const pax = ANAC_PASSAGEIROS_UF[uf];
+      // Cada passageiro conta uma vez: a base soma embarques e desembarques, então divide-se por 2.
+      const pax = ANAC_PASSAGEIROS_UF[uf].map((v) => Math.round(v / 2));
       const porAno = {};
       for (const b of r.value?.aggregations?.mes?.buckets || []) {
         const ano = Math.floor(Number(b.key) / 100);
