@@ -56,6 +56,7 @@ export const notaPredatoria = (
 export const notaAcesso = (
   <>
     <p>Taxa: ações aéreas originárias (graus JE e G1, sem cumprimento de sentença) ajuizadas de 2015 a 2025 no TJ da UF ÷ passageiros pagos no mesmo período × 100 mil. Apenas TJs estaduais, pois os TRFs abrangem várias UFs.</p>
+    <p>Alinhamento temporal: a ANAC publica dados mensais, mas a série usada termina em 2025, último ano completo disponível. Por isso, as ações do DataJud desta análise também são limitadas a 2015–2025, e 2026 fica fora das duas fontes. Assim, numerador e denominador cobrem o mesmo período, sem comparar anos com cobertura diferente.</p>
     <p>Fonte externa: ANAC, "Dados Estatísticos do Transporte Aéreo" (dados abertos, arquivo Dados_Estatisticos.csv, versão de 27/09/2026). Passageiros pagos nos aeroportos da UF, em voos domésticos e internacionais, contados uma única vez (como no critério IATA/IBAER): a soma de embarcados e desembarcados é dividida por 2, já que cada viagem aparece na origem e no destino. A divisão é aproximada, porque em voos internacionais só uma das pontas fica no Brasil. A ação é atribuída à UF do tribunal, que pode não coincidir com a do voo. Tribunais com baixa cobertura histórica no DataJud têm a taxa subestimada.</p>
   </>
 );
