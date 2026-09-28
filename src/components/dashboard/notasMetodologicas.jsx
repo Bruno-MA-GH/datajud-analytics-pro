@@ -6,7 +6,8 @@ export const notaVolume = (
   <>
     <p>Em todas as análises, são excluídos os processos cuja data de ajuizamento, gravada como dígitos, forma data impossível (ex.: mês 13 ou dia 00), por indicarem erro de cadastro no tribunal de origem.</p>
     <p>Agregações <C>terms</C> com script de normalização sobre <C>dataAjuizamento</C>, evitando o limite de 10k hits da paginação.</p>
-    <p>Critério de litigância aérea: assuntos "Atraso de vôo", "Cancelamento de vôo" e "Extravio de bagagem" (filtro por nome, estável nacionalmente).</p>
+    <p>Critério de litigância aérea: assuntos "Atraso de vôo", "Cancelamento de vôo", "Extravio de bagagem", "Overbooking", "Transporte Aéreo" e "Acidente Aéreo" (filtro por nome, estável nacionalmente).</p>
+    <p>Ressalva: no TJRJ, "Acidente Aéreo" (cerca de 10,6 mil processos, a maioria no Juizado) aparece com frequência junto de "Acidente de Trânsito" e "Abatimento proporcional do preço". A leitura adotada é que o trânsito aéreo foi cadastrado sob o assunto genérico de trânsito, e por isso os processos foram mantidos. Ainda assim, pode haver erro de cadastro e processos alheios ao setor aéreo.</p>
   </>
 );
 
@@ -15,7 +16,7 @@ export const notaGratuidade = (
 );
 
 export const notaTramitacao = (
-  <p>Tempo de tramitação: diferença em dias entre o último movimento processual e a <C>dataAjuizamento</C>. Todas as datas são reconstruídas antes do cálculo: as gravadas como dígitos "yyyyMMddHHmmss" são decompostas e remontadas, de modo que nenhum processo é excluído pelo formato de armazenamento. Exceção: processos cujos dígitos formam data impossível (ex.: mês 13 ou dia 00) são excluídos, por indicarem erro de cadastro no tribunal de origem. Resultado do julgamento: varredura dos movimentos do TPU de Magistratura (procedência, improcedência, procedência em parte, extinção sem resolução do mérito e transação).</p>
+  <p>Tempo de tramitação: diferença em dias entre o último movimento processual e a <C>dataAjuizamento</C>. Todas as datas são reconstruídas antes do cálculo: as gravadas como dígitos "yyyyMMddHHmmss" são decompostas e remontadas, de modo que nenhum processo é excluído pelo formato de armazenamento. Exceção: processos cujos dígitos formam data impossível (ex.: mês 13 ou dia 00) são excluídos, por indicarem erro de cadastro no tribunal de origem. A duração considera apenas processos já arquivados ou com baixa definitiva, pois nos processos em curso o último movimento não marca o fim da tramitação. Resultado do julgamento: movimentos do TPU de Magistratura, com desfecho único por processo segundo hierarquia fixa: acordo, procedência em parte, procedência, improcedência e extinção sem resolução do mérito. Um processo com mais de um desses movimentos (ex.: sentença reformada em recurso) conta apenas na categoria mais alta, e os percentuais somam 100%.</p>
 );
 
 export const notaRito = (

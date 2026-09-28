@@ -12,6 +12,7 @@ import {
   MOVIMENTOS_ACORDO_NOMES,
   SCRIPT_DURACAO_DIAS,
   queryRitoJE,
+  MOVIMENTOS_BAIXA_NOMES,
 } from "../../shared/datajud.ts";
 
 // =============================================================================
@@ -33,6 +34,22 @@ import {
 //     acordo/transação. Permite contrastar o BENEFÍCIO ESPERADO pelo autor com
 //     o RESULTADO REAL observado na base.
 // =============================================================================
+
+// Hierarquia fixa de desfechos: cada processo conta em uma só categoria, a mais
+// alta que possuir (acordo > parcial > procedência > improcedência > sem mérito).
+const HIERARQUIA = [
+  ["acordo", MOVIMENTOS_ACORDO_NOMES],
+  ["parcial", MOVIMENTOS_PARCIAL_NOMES],
+  ["procedencia", MOVIMENTOS_PROCEDENCIA_NOMES],
+  ["improcedencia", MOVIMENTOS_IMPROCEDENCIA_NOMES],
+  ["sem_merito", MOVIMENTOS_SEM_MERITO_NOMES],
+];
+const termoMov = (nomes) => ({ terms: { "movimentos.nome.keyword": nomes } });
+function desfechosUnicos() {
+  return Object.fromEntries(HIERARQUIA.map(([k, nomes], i) => [k, {
+    filter: { bool: { filter: [termoMov(nomes)], must_not: HIERARQUIA.slice(0, i).map(([, n]) => termoMov(n)) } },
+  }]));
+}
 
 export default async function (req) {
   try {
@@ -67,27 +84,18 @@ export default async function (req) {
         },
       },
       aggs: {
-        // (1) Tempo de tramitação, em dias.
-        duracao_media: { avg: { script: { source: SCRIPT_DURACAO_DIAS } } },
-        duracao_percentis: {
-          percentiles: { script: { source: SCRIPT_DURACAO_DIAS }, percents: [50, 90] },
+        // (1) Tempo de tramitação, em dias — apenas processos arquivados/baixados.
+        arquivados: {
+          filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_BAIXA_NOMES } },
+          aggs: {
+            duracao_media: { avg: { script: { source: SCRIPT_DURACAO_DIAS } } },
+            duracao_percentis: {
+              percentiles: { script: { source: SCRIPT_DURACAO_DIAS }, percents: [50, 90] },
+            },
+          },
         },
-        // (2) Resultado do julgamento (TPU de Movimentos - Magistratura).
-        procedencia: {
-          filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_PROCEDENCIA_NOMES } },
-        },
-        improcedencia: {
-          filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_IMPROCEDENCIA_NOMES } },
-        },
-        parcial: {
-          filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_PARCIAL_NOMES } },
-        },
-        sem_merito: {
-          filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_SEM_MERITO_NOMES } },
-        },
-        acordo: {
-          filter: { terms: { "movimentos.nome.keyword": MOVIMENTOS_ACORDO_NOMES } },
-        },
+        // (2) Resultado: desfecho único por processo, pela hierarquia fixa.
+        ...desfechosUnicos(),
       },
     };
 
@@ -114,12 +122,13 @@ export default async function (req) {
         return;
       }
       const a = r.value?.aggregations || {};
-      const n = r.value?.hits?.total?.value || 0;
-      if (n > 0 && a.duracao_media?.value != null) {
+      const arq = a.arquivados || {};
+      const n = arq.doc_count || 0;
+      if (n > 0 && arq.duracao_media?.value != null) {
         total += n;
-        somaDias += a.duracao_media.value * n;
-        p50Acum += (a.duracao_percentis?.values?.["50.0"] || 0) * n;
-        p90Acum += (a.duracao_percentis?.values?.["90.0"] || 0) * n;
+        somaDias += arq.duracao_media.value * n;
+        p50Acum += (arq.duracao_percentis?.values?.["50.0"] || 0) * n;
+        p90Acum += (arq.duracao_percentis?.values?.["90.0"] || 0) * n;
       }
       resultado.procedencia += a.procedencia?.doc_count || 0;
       resultado.improcedencia += a.improcedencia?.doc_count || 0;

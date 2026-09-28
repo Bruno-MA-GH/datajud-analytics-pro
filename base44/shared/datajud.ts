@@ -37,6 +37,10 @@ export const ASSUNTOS_AEREA_NOMES = [
   "Cancelamento de vôo",
   "Cancelamento de voo",
   "Extravio de bagagem",
+  "Overbooking",
+  "Transporte Aéreo",
+  // Ressalva: no TJRJ aparece junto de "Acidente de Trânsito" (possível erro de cadastro).
+  "Acidente Aéreo",
 ];
 
 export const ASSUNTOS_JUS_GRATUITA_NOMES = [
