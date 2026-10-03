@@ -30,7 +30,7 @@ export default async function (req) {
       } },
       aggs: { mes: { terms: { script: { source: SCRIPT_DATA_AJUIZAMENTO_YYYYMM }, size: 1000 } } },
     };
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
     const linhas = [], falhas = [];
 
     results.forEach((r, i) => {

@@ -109,7 +109,7 @@ export default async function (req) {
       },
     };
 
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
     const ok = [];
     const falhas = [];
     const recuperacao = [];

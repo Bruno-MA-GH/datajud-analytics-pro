@@ -1,0 +1,20 @@
+{
+  "name": "DatajudCache",
+  "type": "object",
+  "properties": {
+    "chave": {
+      "type": "string",
+      "description": "tribunal + hash da consulta"
+    },
+    "tribunal": {
+      "type": "string"
+    },
+    "resposta": {
+      "type": "string",
+      "description": "Resposta agregada do DataJud (JSON)"
+    }
+  },
+  "required": [
+    "chave"
+  ]
+}

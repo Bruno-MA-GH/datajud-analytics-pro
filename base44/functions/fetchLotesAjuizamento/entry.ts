@@ -28,7 +28,7 @@ export default async function (req) {
       ] } },
       aggs: { lotes: { terms: { script: { source: SCRIPT_VARA_DIA }, min_doc_count: LOTE_MIN, size: 10000 } } },
     };
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
 
     const anoAtual = new Date().getFullYear();
     const porAno = {}; // ano -> { lotes, acoesEmLote }

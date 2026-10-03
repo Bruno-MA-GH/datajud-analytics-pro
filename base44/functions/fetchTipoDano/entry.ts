@@ -34,7 +34,7 @@ export default async function (req) {
         },
       },
     };
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
 
     const now = new Date();
     const limite = now.getFullYear() * 100 + now.getMonth() + 1;

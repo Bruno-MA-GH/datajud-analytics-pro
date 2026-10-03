@@ -30,7 +30,7 @@ export default async function (req) {
       } },
       aggs: {
         faixa: {
-          terms: { script: { source: SCRIPT_FAIXA, params: { agora: Date.now() } }, size: 10 },
+          terms: { script: { source: SCRIPT_FAIXA, params: { agora: Math.floor(Date.now() / 86400000) * 86400000 } }, size: 10 },
           aggs: {
             grau: { terms: { field: "grau.keyword", size: 10 } },
             classe: { terms: { field: "classe.nome.keyword", size: 8 } },
@@ -38,7 +38,7 @@ export default async function (req) {
         },
       },
     };
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
     const faixas = FAIXAS.map((nome) => ({ nome, total: 0, tribunais: {}, graus: {}, classes: {} }));
     const ok = [], falhas = [];
     const soma = (o, k, v) => { o[k] = (o[k] || 0) + v; };

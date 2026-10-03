@@ -33,7 +33,7 @@ export default async function (req) {
         movimentos: { value_count: { field: "movimentos.dataHora" } },
       },
     };
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
     const linhas = [], falhas = [];
 
     results.forEach((r, i) => {

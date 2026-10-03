@@ -23,6 +23,11 @@ export function Analise({ consultas, children }) {
       <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
         <p className="text-sm">Consultando agregações do DataJud…</p>
+        {qs.find((q) => q.failureCount > 0) && (
+          <p className="max-w-md text-center text-xs">
+            O CNJ está lento e a consulta é feita em etapas: {mensagemErro(qs.find((q) => q.failureCount > 0).failureReason)}
+          </p>
+        )}
       </div>
     );
   }

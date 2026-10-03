@@ -89,7 +89,7 @@ export default async function (req) {
       },
     };
 
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
 
     let total = 0;
     let somaDias = 0; // média ponderada pelo nº de processos de cada tribunal

@@ -10,6 +10,17 @@
 // =============================================================================
 
 import { secrets } from "base44:runtime";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
+
+// Limites de tempo de uma chamada: o CNJ pode levar 30s+ até para consultas
+// triviais, e o gateway derruba requisições longas (504). Por isso cada chamada
+// para de iniciar novos tribunais após INICIO_MAX_MS e aborta em ABORT_MS; o
+// que já foi obtido fica salvo (DatajudCache) e a chamada seguinte continua
+// de onde parou.
+const INICIO_MAX_MS = 45000;
+const ABORT_MS = 85000;
+const TTL_CACHE_MS = 24 * 60 * 60 * 1000;
+const MAX_CACHE_CHARS = 150000;
 
 // URL base da API Pública do DataJud (CNJ). Índices por tribunal:
 //   /api_publica_<tribunal>/_search   (host ".jus.br")
@@ -237,12 +248,13 @@ export function toYearMonth(k) {
 // ---------------------------------------------------------------------------
 // Executa uma query DSL contra o índice de um tribunal.
 // ---------------------------------------------------------------------------
-export async function queryDataJudAggregation(tribunal, dsl) {
+export async function queryDataJudAggregation(tribunal, dsl, prazo = Date.now() + ABORT_MS) {
   const url = `${DATAJUD_BASE_URL}/api_publica_${tribunal}/_search`;
   const apiKey = secrets.get("DATAJUD_API_KEY") || DATAJUD_API_KEY_PUBLICA;
 
   // O DataJud responde 429 (es_rejected_execution_exception) quando sua fila
-  // de buscas satura; nesses casos (e em 5xx) repetimos com espera crescente.
+  // de buscas satura; nesses casos (e em 5xx) repetimos com espera crescente,
+  // sempre dentro do prazo total da chamada.
   let res;
   for (let tentativa = 0; tentativa < 5; tentativa++) {
     res = await fetch(url, {
@@ -253,12 +265,12 @@ export async function queryDataJudAggregation(tribunal, dsl) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(dsl),
+      signal: AbortSignal.timeout(Math.max(1000, prazo - Date.now())),
     });
     if (res.status !== 429 && res.status < 500) break;
-    if (tentativa < 4) {
-      await res.body?.cancel();
-      await new Promise((r) => setTimeout(r, 1500 * 2 ** tentativa + Math.random() * 1000));
-    }
+    if (tentativa >= 4 || Date.now() >= prazo - 20000) break;
+    await res.body?.cancel();
+    await new Promise((r) => setTimeout(r, 1500 * 2 ** tentativa + Math.random() * 1000));
   }
 
   if (!res.ok) {
@@ -278,11 +290,45 @@ const settle = (p) =>
 
 // Consulta todos os tribunais e devolve resultados no formato de
 // Promise.allSettled, na mesma ordem da lista recebida.
-export async function queryTribunais(tribunals, dslOriginal, { incluirPosAnoFinal = false } = {}) {
+// Com `req`, cada resposta de tribunal é guardada por 24h (DatajudCache). Se o
+// tempo da chamada acabar antes de todos responderem, lança "PARCIAL: ..." —
+// o cliente repete a chamada e só os tribunais faltantes são consultados.
+class Pendente extends Error {}
+const ehPendente = (r) =>
+  r?.status === "rejected" && (r.reason instanceof Pendente || ["TimeoutError", "AbortError"].includes(r.reason?.name));
+const lista = (r) => (Array.isArray(r) ? r : r?.items || []);
+
+async function hashHex(s) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+export async function queryTribunais(tribunals, dslOriginal, { incluirPosAnoFinal = false, req = null } = {}) {
+  const inicio = Date.now();
+  const prazo = inicio + ABORT_MS;
   // Todas as análises excluem processos com data de ajuizamento impossível
   // (erro de cadastro no tribunal de origem) e, salvo exceção, os de 2026.
   const filtroData = incluirPosAnoFinal ? queryDataPossivel(Number.MAX_SAFE_INTEGER) : queryDataPossivel();
   const dsl = { ...dslOriginal, query: { bool: { filter: [dslOriginal.query || { match_all: {} }, filtroData] } } };
+  const h = await hashHex(JSON.stringify(dsl));
+  const store = req ? createClientFromRequest(req).asServiceRole.entities.DatajudCache : null;
+
+  const consulta = async (t) => {
+    const chave = `${t}:${h}`;
+    if (store) {
+      const c = lista(await store.filter({ chave }, { sort: "-created_date", limit: 1 }).catch(() => []))[0];
+      if (c) {
+        if (Date.now() - new Date(c.created_date).getTime() < TTL_CACHE_MS) return JSON.parse(c.resposta);
+        await store.delete(c.id).catch(() => {});
+      }
+    }
+    if (Date.now() - inicio > INICIO_MAX_MS) throw new Pendente("pendente");
+    const r = await queryDataJudAggregation(t, dsl, prazo);
+    const txt = JSON.stringify(r);
+    if (store && txt.length < MAX_CACHE_CHARS) await store.create({ chave, tribunal: t, resposta: txt }).catch(() => {});
+    return r;
+  };
+
   const demais = tribunals.filter((t) => !TRIBUNAIS_ISOLADOS.includes(t));
   const isolados = tribunals.filter((t) => TRIBUNAIS_ISOLADOS.includes(t));
   const res = new Map();
@@ -291,14 +337,17 @@ export async function queryTribunais(tribunals, dslOriginal, { incluirPosAnoFina
   const worker = async () => {
     while (fila.length) {
       const t = fila.shift();
-      res.set(t, await settle(queryDataJudAggregation(t, dsl)));
+      res.set(t, await settle(consulta(t)));
     }
   };
   await Promise.all(Array.from({ length: CONCORRENCIA }, worker));
   for (const t of isolados) {
-    let r = await settle(queryDataJudAggregation(t, dsl));
-    if (r.status === "rejected") r = await settle(queryDataJudAggregation(t, dsl));
+    let r = await settle(consulta(t));
+    if (r.status === "rejected" && !ehPendente(r) && Date.now() < prazo - 30000) r = await settle(consulta(t));
     res.set(t, r);
   }
-  return tribunals.map((t) => res.get(t));
+  const out = tribunals.map((t) => res.get(t));
+  const pend = out.filter(ehPendente).length;
+  if (pend) throw new Error(`PARCIAL: ${out.length - pend} de ${out.length} tribunais já consultados e guardados; continuando…`);
+  return out;
 }

@@ -27,7 +27,10 @@ export function analiseQuery(fn, payload) {
     initialDataUpdatedAt: () => lerCache(k)?.t,
     staleTime: TTL,
     gcTime: TTL,
-    retry: 1,
+    // "PARCIAL": o servidor guardou o que já obteve do CNJ e pede nova chamada
+    // para concluir os tribunais restantes.
+    retry: (n, e) => (mensagemErro(e).startsWith("PARCIAL") ? n < 15 : n < 1),
+    retryDelay: (n, e) => (mensagemErro(e).startsWith("PARCIAL") ? 500 : 2000),
     refetchOnWindowFocus: false,
   };
 }

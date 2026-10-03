@@ -85,7 +85,7 @@ export default async function (req) {
       },
     };
 
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
 
     const merged = new Map(); // "yyyy-MM" -> { total, comGratuidade }
     const ok = [];

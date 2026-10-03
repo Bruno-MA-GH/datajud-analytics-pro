@@ -57,7 +57,7 @@ export default async function (req) {
 
     // Dispara todos os tribunais em paralelo; falhas individuais não derrubam
     // o agregado (alguns índices podem estar indisponíveis).
-    const results = await queryTribunais(tribunals, dsl);
+    const results = await queryTribunais(tribunals, dsl, { req });
 
     const merged = new Map(); // "yyyy-MM" -> count
     const ok = [];
