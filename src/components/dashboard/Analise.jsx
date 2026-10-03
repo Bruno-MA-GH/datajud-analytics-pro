@@ -1,6 +1,8 @@
 import React from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportarPlanilha } from "@/lib/exportarPlanilha";
 import { analiseQuery, mensagemErro } from "@/lib/analiseCache";
 
 // Carrega as consultas de uma análise só quando ela é exibida.
@@ -24,7 +26,18 @@ export function Analise({ consultas, children }) {
       </div>
     );
   }
-  return children(qs.map((q) => q.data));
+  const dados = qs.map((q) => q.data);
+  const baixar = () => exportarPlanilha(consultas, dados, `datajud_${consultas[0][0].replace(/^fetch/, "")}_${new Date().toISOString().slice(0, 10)}`);
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" className="gap-2" onClick={baixar}>
+          <Download className="h-4 w-4" /> Baixar planilha
+        </Button>
+      </div>
+      {children(dados)}
+    </div>
+  );
 }
 
 export default Analise;
