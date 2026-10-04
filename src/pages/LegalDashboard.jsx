@@ -151,7 +151,7 @@ export default function LegalDashboard() {
         ]} />
 
         <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
-          <p>Fonte: API Pública do DataJud (CNJ). Os resultados de cada análise ficam salvos no navegador por 24 horas; "Atualizar" refaz as consultas.</p>
+          <p>Fonte: API Pública do DataJud (CNJ). Os resultados de cada análise ficam salvos no servidor, iguais para todos os acessos, com a data da consulta indicada; análises ainda não salvas são consultadas na primeira abertura. "Atualizar" refaz as consultas exibidas e substitui as salvas.</p>
           <p>
             Nota metodológica geral: todas as análises cobrem ajuizamentos até 31/12/2025; 2026, ano
             incompleto, fica de fora (exceto no estudo de evento do Tema 1.417, que depende dos meses

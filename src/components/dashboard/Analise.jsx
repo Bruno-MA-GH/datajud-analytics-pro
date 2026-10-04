@@ -33,9 +33,13 @@ export function Analise({ consultas, children }) {
   }
   const dados = qs.map((q) => q.data);
   const baixar = () => exportarPlanilha(consultas, dados, `datajud_${consultas[0][0].replace(/^fetch/, "")}_${new Date().toISOString().slice(0, 10)}`);
+  const datas = dados.map((d) => d?.consultado_em).filter(Boolean).sort();
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-muted-foreground">
+          {datas[0] && `Consulta realizada em ${new Date(datas[0]).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`}
+        </span>
         <Button variant="outline" size="sm" className="gap-2" onClick={baixar}>
           <Download className="h-4 w-4" /> Baixar planilha
         </Button>
