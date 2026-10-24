@@ -1,61 +1,41 @@
-import { base44 } from "@/api/base44Client";
+// Versão pública: lê apenas os resultados reais exportados para /public/data.
+// Não chama Base44, DataJud nem IBGE. A rotina original de coleta está em
+// src/lib/analiseCacheColeta.js (uso administrativo no ambiente Base44).
+import { DEFAULT_TRIBUNALS } from "@/lib/tribunals";
 
-// Resultados das análises ficam gravados no servidor (entidade AnaliseSalva +
-// arquivo privado), iguais para todos os acessos. Só consulta o DataJud quando
-// a análise ainda não foi salva, ou quando o usuário pede "Atualizar".
-let forcar = false;
-const refeitas = new Set();
+let manifestoP = null;
+const carregarManifesto = () =>
+  (manifestoP ||= fetch("/data/manifest.json", { cache: "no-store" }).then((r) => {
+    if (!r.ok) throw new Error("Manifesto de dados publicados não encontrado.");
+    return r.json();
+  }).catch((e) => { manifestoP = null; throw e; }));
 
-const chaveDe = (fn, payload) => `${fn}:${JSON.stringify(payload)}`;
-
-async function lerSalva(chave) {
-  const { items } = await base44.entities.AnaliseSalva.filter({ chave }, { sort: "-created_date", limit: 1 });
-  const reg = items[0];
-  if (!reg) return null;
-  const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: reg.arquivo });
-  const dados = await (await fetch(signed_url)).json();
-  return { ...dados, consultado_em: reg.created_date };
-}
-
-async function salvar(chave, fn, dados) {
-  const file = new File([JSON.stringify(dados)], "analise.json", { type: "application/json" });
-  const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-  const { items } = await base44.entities.AnaliseSalva.filter({ chave }, { limit: 20 });
-  await base44.entities.AnaliseSalva.create({ chave, funcao: fn, arquivo: file_uri });
-  await Promise.all(items.map((r) => base44.entities.AnaliseSalva.delete(r.id)));
-}
+const mesmaSelecao = (a = [], b = []) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
 export function analiseQuery(fn, payload) {
-  const chave = chaveDe(fn, payload);
   return {
     queryKey: ["analise", fn, payload],
     queryFn: async () => {
-      const refazer = forcar && !refeitas.has(chave);
-      if (!refazer) {
-        const salva = await lerSalva(chave);
-        if (salva) return salva;
-      }
-      const r = await base44.functions.invoke(fn, payload);
-      const dados = r.data;
-      // Resultado incompleto (tribunais sem resposta) não é gravado como definitivo.
-      if (!dados?.tribunais_falhas?.length) await salvar(chave, fn, dados);
-      refeitas.add(chave);
-      return { ...dados, consultado_em: new Date().toISOString() };
+      const man = await carregarManifesto();
+      const tribs = payload?.tribunals?.length ? payload.tribunals : DEFAULT_TRIBUNALS;
+      const doFn = man.analises.filter((a) => a.funcao === fn && (a.parametros.rito || null) === (payload?.rito || null));
+      if (!doFn.length) throw new Error("Esta análise ainda não foi coletada e não está disponível nos dados publicados.");
+      const a = doFn.find((x) => mesmaSelecao(x.parametros.tribunals, tribs));
+      if (!a) throw new Error(`Os dados publicados desta análise cobrem apenas a seleção de ${doFn[0].parametros.tribunals.length} tribunais (${doFn[0].parametros.tribunals.join(", ").toUpperCase()}). A seleção atual não pode ser recalculada com os dados disponíveis.`);
+      const r = await fetch(`/data/${a.arquivo}`, { cache: "no-store" });
+      if (!r.ok) throw new Error(`Arquivo de dados ${a.arquivo} não encontrado.`);
+      return { ...(await r.json()), consultado_em: a.consultado_em };
     },
     staleTime: Infinity,
     gcTime: Infinity,
-    // "PARCIAL": o servidor guardou o que já obteve do CNJ e pede nova chamada
-    // para concluir os tribunais restantes.
-    retry: (n, e) => (mensagemErro(e).startsWith("PARCIAL") ? n < 15 : n < 1),
-    retryDelay: (n, e) => (mensagemErro(e).startsWith("PARCIAL") ? 500 : 2000),
+    retry: false,
     refetchOnWindowFocus: false,
   };
 }
 
-// "Atualizar": as análises exibidas são consultadas de novo e as salvas substituídas.
+// "Recarregar dados publicados": relê os arquivos estáticos, sem nova coleta.
 export function limparCacheAnalises() {
-  forcar = true;
-  refeitas.clear();
+  manifestoP = null;
 }
 
-export const mensagemErro = (e) => e?.response?.data?.error || e?.message || "Falha ao consultar o DataJud.";
+export const mensagemErro = (e) => e?.message || "Falha ao carregar os dados publicados.";

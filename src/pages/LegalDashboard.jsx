@@ -62,7 +62,8 @@ export default function LegalDashboard() {
   }, [volume, jusG]);
 
   const kpiPronto = volQ.data !== undefined && jgQ.data !== undefined;
-  const v = (x) => (kpiPronto ? x : "…");
+  const kpiErro = volQ.isError || jgQ.isError;
+  const v = (x) => (kpiErro ? "—" : kpiPronto ? x : "…");
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,10 +86,17 @@ export default function LegalDashboard() {
             <TribunalFilter value={tribunals} onApply={setTribunals} />
             <Button variant="outline" className="gap-2" onClick={atualizar} disabled={carregando}>
               {carregando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Atualizar
+              Recarregar dados publicados
             </Button>
           </div>
         </header>
+
+        {kpiErro && (
+          <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
+            <AlertCircle className="h-4 w-4 mt-0.5 text-amber-600" />
+            <div>Indicadores indisponíveis: {(volQ.error || jgQ.error)?.message}</div>
+          </div>
+        )}
 
         {meta.falhas.length > 0 && (
           <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
@@ -151,7 +159,7 @@ export default function LegalDashboard() {
         ]} />
 
         <footer className="mt-10 border-t border-border/70 pt-5 text-xs text-muted-foreground space-y-1">
-          <p>Fonte: API Pública do DataJud (CNJ). Os resultados de cada análise ficam salvos no servidor, iguais para todos os acessos, com a data da consulta indicada; análises ainda não salvas são consultadas na primeira abertura. "Atualizar" refaz as consultas exibidas e substitui as salvas.</p>
+          <p>Fonte: API Pública do DataJud (CNJ). Versão pública com resultados reais já coletados e publicados como arquivos estáticos, com a data de cada coleta indicada. Nenhuma consulta ao DataJud é feita durante a navegação; "Recarregar dados publicados" apenas relê esses arquivos.</p>
           <p>
             Nota metodológica geral: todas as análises cobrem ajuizamentos até 31/12/2025; 2026, ano
             incompleto, fica de fora (exceto no estudo de evento do Tema 1.417, que depende dos meses
